@@ -30,16 +30,32 @@ class UserBookController extends Controller
     {
         // Validate the data
         $validatedData = $request->validate([
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+            'isbn' => 'required|string|max:20',
             'status' => 'required|in:to-read, reading, read',
             'rating' => 'nullable|integer|min:1|max:5',
             'comment' => 'nullable',
         ]);
 
-        // Attach the book to the user
+        $book = Book::firstOrCreate(
+            ['isbn' => $validatedData['isbn']], //Search by ISBN if available
+            [
+                'title' => $validatedData['title'],
+                'author' => $validatedData['author'],
+            ]
+        );
+        
+        // Attach the book to the user with metadata
         auth()->user()->books()->attach($book->id, $validatedData);
 
+        // Redirect to the useer's collection
+        return redirect()
+            ->route('my-collection')
+            ->with('success', 'Book added to your collection');
+
         // Redirect to the book page
-        return redirect()->route('books.index')->with('success', 'Book added to your collection');
+        // return redirect()->route('books.index')->with('success', 'Book added to your collection');
     }
 
     /**

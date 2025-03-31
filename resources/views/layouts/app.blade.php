@@ -44,6 +44,10 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('books.index') }}">Books</a>
                             </li>
+                            <!-- Search Link -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('books.search') }}">Search</a>
+                            </li>
                             <!-- Add Book Link -->
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('books.create') }}">Add Book</a>

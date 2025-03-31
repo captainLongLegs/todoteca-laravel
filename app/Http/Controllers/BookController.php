@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Book;
+use GuzzleHttp\Client;
 
 class BookController extends Controller
 {
@@ -48,6 +49,31 @@ class BookController extends Controller
         Book::create($validatedData); 
 
         return redirect()->route('books.index')->with('success', 'Book added successfully.');
+    }
+
+    /**
+     *  Search for data using the API
+     */
+
+    public function search()
+    {
+        return view('books.search');
+    }
+
+    public function searchResults(Request $request)
+    {
+        $query = $request->input('query');
+        $client = new Client();
+        $response = $client->get('https://openlibrary.org/search.json', [
+            'query' => [
+                'q' => $query,
+                'fields' => 'title,author_name,isbn,first_publish_year',
+            ],
+        ]);
+        $data = json_decode($response->getBody(), true);
+        $books = $data['docs'] ?? [];
+
+        return view('books.search-results', compact('books'));
     }
 
     /**

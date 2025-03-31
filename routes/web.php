@@ -4,9 +4,16 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\UserBookController;
 
+//Home Route
 Route::get('/', function () {
     return view('home');
 })->name('home');
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+
+// API Search Route
+Route::get('/books/search', [BookController::class, 'search'])->name('books.search');
+Route::get('/books/search/results', [BookController::class, 'searchResults'])->name('books.search.results');
 
 //Book routes
 Route::resource('books', BookController::class);
@@ -20,4 +27,9 @@ Route::post('/books/{book}/add-to-collection', [UserBookController::class, 'stor
     ->middleware('auth');
 Auth::routes();
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+
+// Testing Route
+//Route::get('/books/search', function() {
+//    dd('Simplified route test');
+//})->name('books.search');
