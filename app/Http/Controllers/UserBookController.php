@@ -45,6 +45,11 @@ class UserBookController extends Controller
                 'author' => $validatedData['author'],
             ]
         );
+
+        // Check if the book already exists in the user's collection
+        if (auth()->user()->books()->where('book_id', $book->id)->exists()) {
+            return redirect()->back()->with('error', 'This book is already in your collection');
+        }
         
         // Attach the book to the user with metadata
         auth()->user()->books()->attach($book->id, $validatedData);

@@ -41,12 +41,12 @@ class BookController extends Controller
             'publication_year_this_publisher' => 'nullable|integer',
             'publication_year_original' => 'nullable|integer',
             'valoration' => 'nullable|integer|min:1|max:5',
-            'comments' => 'nullable',
+            'comment' => 'nullable|string|max:1000',
             'format' => 'nullable|max:255',
             'tags' => 'nullable',
         ]);
 
-        Book::create($validatedData); 
+        Book::create($validatedData);
 
         return redirect()->route('books.index')->with('success', 'Book added successfully.');
     }
@@ -75,6 +75,46 @@ class BookController extends Controller
 
         return view('books.search-results', compact('books'));
     }
+
+    /**
+     * Store a book from the search results into the database
+     */
+
+    public function storeFromSearch(Request $request)
+    {
+        // Validate input
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+            'isbn' => 'required|string|max:20',
+            'status' => 'required|in:to-read,reading,read',
+            'rating' => 'nullable|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        // Find or create the book
+        $book = Book::firstOrCreate(
+            ['isbn' => $validated['isbn']],
+            [
+                'title' => $validated['title'],
+                'author' => $validated['author'],
+            ]
+        );
+
+        // Handling missing fields, checking for error in 'comment' being empty?
+
+        $pivotData = [
+            'status' => $validated['status'],
+            'rating' => $validated['rating'] ?? null,
+            'comment' => $validated['comment'] ?? null,
+        ];
+
+        // Attach the book to the authenticated user with additional data
+        auth()->user()->books()->attach($book->id, $pivotData);
+
+        return redirect()->route('my-collection')->with('success', 'Book added to your collection.');
+    }
+
 
     /**
      * Display the specified resource.

@@ -11,7 +11,7 @@
                     <p>Author(s): {{ implode(', ', $book['author_name'] ?? ['Unknown']) }}</p>
                     <p>ISBN: {{ $book['isbn'][0] ?? 'Not available' }}</p>
                     <p>First Published: {{ $book['first_publish_year'] ?? 'Unknown' }}</p>
-                    <form action="{{ route('user-books.store') }}" method="POST">
+                    <form action="{{ route('books.store-from-search') }}" method="POST">
                         @csrf
                         <input type="hidden" name="title" value="{{ $book['title'] }}">
                         <input type="hidden" name="author" value="{{ implode(',', $book['author_name'] ?? ['Unknown']) }}">
@@ -28,7 +28,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="rating" class="form-label">Rating (1-5)</label>
-                            <input type="number" name="rating" id="rating" class="form-control" min="1" max="5" step="0.1">
+                            <input type="number" name="rating" id="rating" class="form-control" min="1" max="5" step="1">
                         </div>
                         <div class="mb-3">
                             <label for="comment" class="form-label">Comment</label>

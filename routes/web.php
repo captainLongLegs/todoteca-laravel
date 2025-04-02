@@ -27,6 +27,11 @@ Route::post('/books/{book}/add-to-collection', [UserBookController::class, 'stor
     ->middleware('auth');
 Auth::routes();
 
+// Adds a book from the API to the user's collection
+Route::post('/books/store-from-search', [BookController::class, 'storeFromSearch'])
+    ->name('books.store-from-search')
+    ->middleware('auth');
+
 
 
 // Testing Route
