@@ -55,4 +55,11 @@ class User extends Authenticatable
                     ->withPivot('status', 'rating', 'comment')
                     ->withTimestamps();
     }
+
+    public function videogames()
+    {
+        return $this->belongsToMany(Videogame::class)
+                    ->withPivot('status', 'playtime_hours', 'rating', 'comment')
+                    ->withTimestamps();
+    }
 }
