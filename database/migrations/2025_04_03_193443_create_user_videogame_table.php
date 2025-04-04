@@ -11,8 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('user_videogame', function (Blueprint $table) {
-            $table->id();
+        Schema::create('user_videogame', function (Blueprint $table) {;
             $table->foreignId('user_id')->constrained();
             $table->foreignId('videogame_id')->constrained();
             $table->string('status')->default('to-play'); // playing/completed/abandoned
@@ -20,6 +19,7 @@ return new class extends Migration
             $table->integer('rating')->nullable(); // 1-5
             $table->text('comment')->nullable();
             $table->timestamps();
+            $table->primary(['user_id', 'videogame_id']);
         });
     }
 
