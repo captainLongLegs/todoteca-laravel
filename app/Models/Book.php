@@ -19,7 +19,7 @@ class Book extends Model
     /**
      * Define the many-to-many relationship with the User model.
      */
-    public function users()
+    public function usersCollectionBook()
     {
         return $this->belongsToMany(User::class, 'user_books')
                     ->withPivot('status', 'rating', 'comment')

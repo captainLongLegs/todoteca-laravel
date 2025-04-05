@@ -21,6 +21,10 @@ Route::get('/my-collection', function() {
     return view('books.my-collection');
 })->name('my-collection')->middleware('auth');
 
+//Games routes
+Route::get('/games?search', [GameController::class, 'search'])
+    ->name('games.search');
+
 //UserBook routes
 Route::post('/books/{book}/add-to-collection', [UserBookController::class, 'store'])
     ->name('user-books.store')
