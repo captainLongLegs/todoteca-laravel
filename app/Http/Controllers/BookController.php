@@ -112,7 +112,7 @@ class BookController extends Controller
         // Attach the book to the authenticated user with additional data
         auth()->user()->books()->attach($book->id, $pivotData);
 
-        return redirect()->route('my-collection')->with('success', 'Book added to your collection.');
+        return redirect()->route('my-books')->with('success', 'Book added to your collection.');
     }
 
 

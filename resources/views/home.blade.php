@@ -21,7 +21,7 @@
                         <ul>
                             <li>View all books in the <a href="{{ route('books.index') }}">Books</a> section.</li>
                             <li>Add a new book in the <a href="{{ route('books.create') }}">Add Book</a> section.</li>
-                            <li>View your personal collection in the <a href="{{ route('my-collection') }}">My
+                            <li>View your personal book collection in the <a href="{{ route('my-books') }}">My
                                     Collection</a> section.</li>
                         </ul>
 

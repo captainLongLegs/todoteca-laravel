@@ -56,7 +56,7 @@ class UserBookController extends Controller
 
         // Redirect to the user's collection
         return redirect()
-            ->route('my-collection')
+            ->route('my-books')
             ->with('success', 'Book added to your collection');
 
         // Redirect to the book page

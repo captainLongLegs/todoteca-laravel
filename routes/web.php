@@ -43,8 +43,8 @@ Route::post('/books/{book}/add-to-collection', [UserBookController::class, 'stor
 // === Videogames routes ===
 Route::prefix('videogames')->name('videogames.')->group(function () {
     Route::get('/', [VideogameController::class, 'index'])->name('index'); // List local videogames
-    Route::get('/search', [VideogamesController::class, 'search'])->name('search'); // API Search Form
-    Route::get('/search/results', [VideogamesController::class, 'searchResults'])->name('search.results'); // API Search Results
+    Route::get('/search', [VideogameController::class, 'search'])->name('search'); // API Search Form
+    Route::get('/search/results', [VideogameController::class, 'searchResults'])->name('search.results'); // API Search Results
 
     Route::post('/store-from-search', [VideogameController::class, 'storeFromSearch']) // Store a videogame from API search results
         ->name('store-from-search')

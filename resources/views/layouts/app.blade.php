@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,6 +17,7 @@
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 </head>
+
 <body>
     <div id="app">
         <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
@@ -23,7 +25,9 @@
                 <a class="navbar-brand" href="{{ url('/') }}">
                     {{ config('app.name', 'Laravel') }}
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -37,25 +41,74 @@
                     <ul class="navbar-nav ms-auto">
 
                         <!-- Home Link -->
-                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url('/') }}">Home</a>
-                         </li>
-                         <!-- Books Link -->
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('books.index') }}">Books</a>
-                            </li>
-                            <!-- Search Link -->
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('books.search') }}">Search</a>
-                            </li>
-                            <!-- Add Book Link -->
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('books.create') }}">Add Book</a>
-                            </li>
-                            <!-- My Collection Link -->
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('my-collection') }}">My Collection</a>
-                            </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('home')}}">Home</a>
+                        </li>
+                        {{-- Book Links Group --}}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownBooks" role="button"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                Books
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdownBooks">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('books.index') }}">
+                                        List Books</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('books.search') }}">
+                                        Search Books (API)</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('books.create') }}">
+                                        Add Book Manually</a>
+                                </li>
+                                @auth
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li><a class="dropdown-item" href="{{ route('my-books') }}">My Books</a></li>
+                                @endauth
+                            </ul>
+                        </li>
+
+                        {{-- Videogame Links Group --}}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown.toggle" href="#" id="navvarDropdownVideogames" role="button"
+                                aria-expanded="false">
+                                Videogames
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navvarDropdownVideogames">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('videogames.index') }}">
+                                        List Videogames
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('videogames.search') }}">
+                                        Search Videogames (API)
+                                    </a>
+                                </li>
+                                {{--To develop
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('videogames.create') }}">
+                                        Add Videogame Manually
+                                    </a>
+                                </li>
+                                --}}
+                                @auth
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('my-videogames') }}">
+                                            My Videogames
+                                        </a>
+                                    </li>
+                                @endauth
+                            </ul>
+                        </li>
+
                         <!-- Authentication Links -->
                         @guest
                             @if (Route::has('login'))
@@ -71,14 +124,15 @@
                             @endif
                         @else
                             <li class="nav-item dropdown">
-                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button"
+                                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                     {{ Auth::user()->name }}
                                 </a>
 
                                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                     <a class="dropdown-item" href="{{ route('logout') }}"
-                                       onclick="event.preventDefault();
-                                                     document.getElementById('logout-form').submit();">
+                                        onclick="event.preventDefault();
+                                                                             document.getElementById('logout-form').submit();">
                                         {{ __('Logout') }}
                                     </a>
 
@@ -98,4 +152,5 @@
         </main>
     </div>
 </body>
+
 </html>
