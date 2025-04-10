@@ -54,7 +54,7 @@ class UserBookController extends Controller
         // Attach the book to the user with metadata
         auth()->user()->books()->attach($book->id, $validatedData);
 
-        // Redirect to the useer's collection
+        // Redirect to the user's collection
         return redirect()
             ->route('my-collection')
             ->with('success', 'Book added to your collection');
