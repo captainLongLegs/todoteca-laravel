@@ -4,15 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Book;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class UserBookController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display the authenticated user's book collection.
      */
     public function index()
     {
-        //
+        // 1. Get the authenticated user
+        $user = Auth::user();
+
+        // 2. Check if a user is actually logged in (though middleware should prevent this).
+        if (!$user) {
+            return redirect()->route('login');            
+        }
+
+        // 3. Fetch the books related to this user
+        $books = $user->books()
+            ->withPivot('status', 'rating', 'comment')
+            ->orderByPivot('created_at', 'desc')
+            ->get();
+
+        // 4. Return the view with the user's books
+        return view('books.my-collection', compact('books'));
     }
 
     /**
