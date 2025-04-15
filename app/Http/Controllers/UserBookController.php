@@ -49,9 +49,9 @@ class UserBookController extends Controller
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
             'isbn' => 'required|string|max:20',
-            'status' => 'required|in:to-read, reading, read',
+            'status' => 'required|in:to-read,reading,read',
             'rating' => 'nullable|integer|min:1|max:5',
-            'comment' => 'nullable',
+            'comment' => 'nullable|string|max:1000',
         ]);
 
         $book = Book::firstOrCreate(
@@ -63,12 +63,19 @@ class UserBookController extends Controller
         );
 
         // Check if the book already exists in the user's collection
-        if (auth()->user()->books()->where('book_id', $book->id)->exists()) {
+        if (Auth::user()->books()->where('book_id', $book->id)->exists()) {
             return redirect()->back()->with('error', 'This book is already in your collection');
         }
+
+        // Prepare the pivot data
+        $pivotData = [
+            'status' => $validatedData['status'],
+            'rating' => $validatedData['rating'] ?? null,
+            'comment' => $validatedData['comment'] ?? null,
+        ];
         
         // Attach the book to the user with metadata
-        auth()->user()->books()->attach($book->id, $validatedData);
+        Auth::user()->books()->attach($book->id, $pivotData);
 
         // Redirect to the user's collection
         return redirect()
