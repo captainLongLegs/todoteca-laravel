@@ -51,8 +51,8 @@ class VideogameController extends Controller
         }
 
         // Get the API key and base URL from .env file
-        $apiKey = config('services.rawg.key'); // To-do later -> configure config/services.php
-        $baseUrl = config('services.rawg.base_url'); // Samey
+        $apiKey = config('services.rawg.key');
+        $baseUrl = config('services.rawg.base_url');
 
         // --- API Call using Laravel HTTP Client ---
         try {
@@ -69,6 +69,13 @@ class VideogameController extends Controller
                 'page_size' => 15, // Limiting the results to 15. Arbitrary atm
                 ]);
 
+
+            // _____-----_____-----_____-----_____ 
+            // TROUBLESHOOTING -> There are no results when searching for any game
+            // dd($response->json()); // Uncomment this line to see the raw response
+            // Check for succesful response (code after dd() won't run yet)
+            // _____-----_____-----_____-----_____
+
             // Check for succesful response
             if ($response->successful()) { // Status code 2XX
                 $data = $response->json(); // We decode JSON response body
@@ -77,7 +84,9 @@ class VideogameController extends Controller
                 // Handling error response
                 $error = "Error fetching data from RAWG API: " . $response->status();
                 Log::error("RAWG API Error: Status {$response->status()}", ['query' => $query, 'response_body' => $response->body()]);
+                $videogames = [];
             }
+
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             // Handle connection errors (timeout, DNS issues, etc.)
             $error = "could not connext to the Videogame API. Please try again later.";
@@ -88,6 +97,12 @@ class VideogameController extends Controller
             Log::error("Videogames Search Error: " . $e->getMessage(), ['query' => $query]);
             report($e); // Optional: report the error to the logging system
         }
+
+        // _____-----_____-----_____-----_____
+        // Troubleshooting
+        // dd($videogames, $error); // Uncomment this line to see the results
+        // Check the structure of $videogames and $error
+        // _____-----_____-----_____-----_____
 
         // Return the results view, passing the games data, query and any error message
         return view('videogames.search-results', compact('videogames', 'query', 'error'));
