@@ -28,7 +28,7 @@ class GameController extends Controller
         $igdbUrl = 'https://api.igdb.com/v4/games';
 
         $games = Http::withHeaders([
-            'CLient-ID' => $clientId,
+            'Client-ID' => $clientId,
             'Authorization' => 'Bearer ' . $accessToken,
         ])->post($igdbUrl, [
             'fields' => 'name, cover.url',

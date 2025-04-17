@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Videogame;
-use GuzzleHttp\Client;
+use GuzzleHttp\Client; // Not using it atm
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http; // Importing Laravel's HTTP Client facade
+use Illuminate\Support\Facades\Log; // Importing Log facade for error logging
 
 class VideogameController extends Controller
 {
@@ -39,52 +41,58 @@ class VideogameController extends Controller
 
      public function searchResults(Request $request)
      {
-        $query = $request->input('query'); // Or other search parameters specific to the game API
+        $query = $request->input('query'); 
+        $videogames = [];
+        $error = null;
 
-        // --- API Logic Placeholder ---
-        // You'll need to:
-        // 1. Choose a videogame API (e.g., RAWG.io, IGDB via Twitch API, GiantBomb)
-        // 2. Get an API key if required.
-        // 3. Install GuzzleHttp if you haven't: composer require guzzlehttp/guzzle
-        // 4. Implement the API call using GuzzleHttp\Client similar to your BookController
-        // 5. Parse the JSON response correctly for videogames.
-
-        $videogames = []; // Placeholder for API results
-        $error = null; // Placeholder for error message
-
-        /* Example structure using Guzzle (replace with your actual API details)
-        try {
-            $client = new \GuzzleHttp\Client();
-            $apiKey = env('VIDEOGAME_API_KEY'); // Store keys in .env!
-            $response = $client->get('YOUR_VIDEOGAME_API_ENDPOINT', [
-                'query' => [
-                    'search' => $query,
-                    'key' => $apiKey,
-                    // other required parameters like fields, page size etc.
-                ],
-                 'headers' => [ // Some APIs need headers
-                    'Accept' => 'application/json',
-                    // 'Client-ID' => 'Your-Client-ID', // Example for Twitch/IGDB
-                    // 'Authorization' => 'Bearer Your-Access-Token', // Example for Twitch/IGDB
-                 ]
-            ]);
-            $data = json_decode($response->getBody()->getContents(), true);
-
-            // --- IMPORTANT: Adapt this part based on the API's response structure ---
-            $videogames = $data['results'] ?? []; // Adjust keys ('results', 'games', etc.)
-
-        } catch (\Exception $e) {
-            // Log the error for debugging
-            \Log::error("Videogame API Error: " . $e->getMessage());
-            $error = "Could not retrieve videogame data. Please try again later.";
-            // Optional: report($e);
+        // Ensure we have a query to search for
+        if (empty($query)) {
+            return redirect()->route('videogames.search')->with('error', 'Please enter a search term.');
         }
-        */
 
-        // Return the results view, passing the games data or error message
-        return view('videogames.search-results', compact('videogames', 'query', 'error')); // Need to create this view
+        // Get the API key and base URL from .env file
+        $apiKey = config('services.rawg.key'); // To-do later -> configure config/services.php
+        $baseUrl = config('services.rawg.base_url'); // Samey
+
+        // --- API Call using Laravel HTTP Client ---
+        try {
+            // First, we make sure the API key and URL are configured
+            if (empty($apiKey) || empty($baseUrl)) {
+                throw new \Exception('RAWG API key or base URL not configured in config/services .php or .env file.');
+            }
+        
+
+            $response = HTTP::timeout(10) // We set a timeout of 10 seconds
+                ->get("{$baseUrl}/games", [
+                'key' => $apiKey,
+                'search' => $query,
+                'page_size' => 15, // Limiting the results to 15. Arbitrary atm
+                ]);
+
+            // Check for succesful response
+            if ($response->successful()) { // Status code 2XX
+                $data = $response->json(); // We decode JSON response body
+                $videogames = $data['results'] ?? []; // Adjust based on the API's response structure
+            } else {
+                // Handling error response
+                $error = "Error fetching data from RAWG API: " . $response->status();
+                Log::error("RAWG API Error: Status {$response->status()}", ['query' => $query, 'response_body' => $response->body()]);
+            }
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            // Handle connection errors (timeout, DNS issues, etc.)
+            $error = "could not connext to the Videogame API. Please try again later.";
+            Log::error("RAWG API Connection Error: " . $e -> getMessage(), ['query' => $query]);
+        } catch (\Exception $e) {
+            // handle other errors (e.g., missing config, unexpected issues)
+            $error = "An unexpected error occurred while searching for videogames.";
+            Log::error("Videogames Search Error: " . $e->getMessage(), ['query' => $query]);
+            report($e); // Optional: report the error to the logging system
+        }
+
+        // Return the results view, passing the games data, query and any error message
+        return view('videogames.search-results', compact('videogames', 'query', 'error'));
     }
-
+      
 
     /**
      * Store a videogame found via API search into the local database
