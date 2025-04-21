@@ -174,7 +174,7 @@ class VideogameController extends Controller
             }
 
             // Genres
-            if (!emptu($validatedData['genres_string'])) {
+            if (!empty($validatedData['genres_string'])) {
                 $genreNames = explode (',', $validatedData['genres_string']);
                 $genreIds = [];
                 foreach ($genreNames as $genreName) {
@@ -221,17 +221,6 @@ class VideogameController extends Controller
             return redirect()->back()->with('error', 'An unexpected error occurred while adding the game.');
 
         }
-
-        // --- Placeholder ---
-        // This will be similar to BookController::storeFromSearch
-        // 1. Validate incoming request data (hidden fields + user status/rating/comment)
-        // 2. Need a Videogame model and migration.
-        // 3. Use Videogame::firstOrCreate(...) based on a unique identifier from the API (like a slug or API ID).
-        // 4. Need User <-> Videogame relationship (e.g., user_videogame pivot table).
-        // 5. Attach the videogame to Auth::user()->videogames() with pivot data.
-        // 6. Redirect to 'my-videogames' with a success message.
-
-        return redirect()->route('my-videogames')->with('info', 'Videogame storing not implemented yet.'); // Temporary response
     }
 
     /**
@@ -240,16 +229,51 @@ class VideogameController extends Controller
      */
     public function myCollection()
     {
-        // --- Placeholder ---
         // 1. Ensure user is authenticated (middleware should handle this).
         // 2. Fetch videogames associated with the user from the pivot table.
-        //    $user = Auth::user();
-        //    $videogames = $user->videogames()->withPivot('status', 'rating', 'comment')->get(); // Assumes 'videogames' relationship exists on User model
+        $user = Auth::user();
+        $videogames = $user->videogames()->withPivot('status', 'rating', 'comment')->get();
         // 3. Return a view displaying the collection.
 
          $videogames = []; // Placeholder
          return view('videogames.my-collection', compact('videogames')); // Need to create this view
     }
 
-    // Add other methods like show, create, store (for manual add), edit, update, destroy later if needed
+    public function create()
+    {
+        // Returns the view that contains the form to add videogames manually
+        return view('videogames.create');
+    }
+
+    public function store(Request $request) 
+    {
+        // 1. Validate the data from the manual form
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255|unique:videogames,name',
+            'developer' => 'required|string|max:255',
+            'publisher' => 'nullable|string|max:255',
+            'released' => 'nullable|date',
+            'background_image' => 'nullable|url|max:255',
+            'description' => 'nullable|string',
+            'age_rating' => 'nullable|string|max:50',
+        ]);
+
+        // 2. Create the videogame in the database
+        try {
+            // We use mass assignment, base on Videogame model's $fillable property
+            $videogame = Videogame::create($validatedData);
+
+            // 3. Redirect after succesful creation
+            return redirect()->route('videogames.index')
+                ->with('success', $videogame->name . ' has been added to your collection.');
+
+        } catch (\Exception $e) {
+            Log::error("Error storing mannually added videogame: " . $e->getMessage());
+            return redirect()->back()
+                ->with('error'. 'Failed to add videogame. Please check the data and try again.')
+                ->withInput(); // Redirect back with input data
+        }
+
+    }
+
 }

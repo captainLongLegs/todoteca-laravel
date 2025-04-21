@@ -89,13 +89,11 @@
                                         Search Videogames (API)
                                     </a>
                                 </li>
-                                {{--To develop
                                 <li>
                                     <a class="dropdown-item" href="{{ route('videogames.create') }}">
                                         Add Videogame Manually
                                     </a>
                                 </li>
-                                --}}
                                 @auth
                                     <li>
                                         <hr class="dropdown-divider">
