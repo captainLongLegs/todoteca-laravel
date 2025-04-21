@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Videogame;
+use App\Models\Platform;
+use App\Models\Genre;
+use Illuminate\Http\Request;
 use GuzzleHttp\Client; // Not using it atm
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http; // Importing Laravel's HTTP Client facade
 use Illuminate\Support\Facades\Log; // Importing Log facade for error logging
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class VideogameController extends Controller
 {
@@ -116,6 +120,108 @@ class VideogameController extends Controller
      */
     public function storeFromSearch(Request $request)
     {
+        // 1. Validate Incoming Request Data
+        $validatedData = $request->validate([
+            'api_id' => 'required|integer',
+            'slug' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'background_image' => 'nullable|url',
+            'released' => 'nullable|date_format:Y-m-d',
+            'developer' => 'nullable|string|max:255',
+            'publisher' => 'nullable|string|max:255',
+            'platforms_string' => 'nullable|string',
+            'genres_string' => 'nullable|string',
+
+            // User input from the form
+            'status' => ['required', Rule::in(['whislist', 'backlog', 'playing', 'completed', 'dropped'])],
+            'rating' => 'nullable|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:5000',
+        ]);
+
+        $user = Auth::user();
+
+        // 2. Find or Create the Videogame
+        try {
+            // We use firstOrCreate to find the videogame by its unique API ID
+            $videogame = Videogame::firstOrCreate(
+                ['api_id' => $validatedData['api_id']], // Search key
+                // Data to use if created
+                [ 'slug' => $validatedData['slug'],
+                  'name' => $validatedData['name'],
+                  'background_image' => $validatedData['background_image'],
+                  'released' => $validatedData['released'],
+                  'developer' => $validatedData['developer'],
+                  'publisher' => $validatedData['publisher'],
+                ]
+            );
+
+            // 3. Handle Platforms and Genres
+
+            // Platforms
+            if (!empty($validatedData['platforms_string'])) {
+                $platformNames = explode (',', $validatedData['platforms_string']);
+                $platformIds = [];
+                foreach ($platformNames as $platformName) {
+                    // Find or create the platform
+                    $platform = Platform::firstOrCreate(
+                        ['name' => trim($platformName)], // Search key
+                        ['slug' => Str::slug(trim($platformName))] // Create key
+                    );
+                    $platformIds[] = $platform->id; // Collect platform IDs
+                }
+                // We sync the platforms for this game
+                $videogame->platforms()->sync($platformIds);
+            }
+
+            // Genres
+            if (!emptu($validatedData['genres_string'])) {
+                $genreNames = explode (',', $validatedData['genres_string']);
+                $genreIds = [];
+                foreach ($genreNames as $genreName) {
+                    // Find or create the genre
+                    $genre = Genre::firstOrCreate(
+                        ['name' => trim($genreName)], // Search key
+                        ['slug' => Str::slug(trim($genreName))] // Create key
+                    );
+                    $genreIds[] = $genre->id; // Collect genre IDs
+                }
+                // We sync the genres for this game
+                $videogame->genres()->sync($genreIds);
+            }
+
+            // 4. Attach the videogame to the user's collection
+            // First, we check if the videogame is already in the user's collection.
+            if ($user->videogames()->where('videogame_id', $videogame->id)->exists()) {
+                return redirect()->route('videogames.search.results', ['query' => $request->input('query')])
+                    ->with('info', 'Videogame already in your collection.');
+            }
+
+            // We prepare pivot data
+            $pivotData = [
+                'status' => $validatedData['status'],
+                'rating' => $validatedData['rating'] ?? null,
+                'comment' => $validatedData['comment'] ?? null,
+            ];
+
+            // Attach the videogame to the user's collection with pivot data
+            $user->videogames89->attach($videogame->id, $pivotData);
+
+            // 5. Redirect with Success Message
+            return redirect()->route('my-videogames')
+                ->with('success', 'Videogame added to your collection successfully.');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle potential database errors
+            Log::error("Database error adding videogame: " . $e->getMessage(), ['api_id' => $validatedData['api_id'] ?? null]);
+            return redirect()->back()->with('error', 'Could not add the game due to a database issue. Please try again.');
+        } catch (\Exception $e) {
+            // Handle any other unexpected errors
+            Log::error("Error in storeFromSearch: " . $e->getMessage(), ['api_id' => $validatedData['api_id'] ?? null]);
+            report($e); // Optional: report the error to the logging system. FTM I leave it here
+            return redirect()->back()->with('error', 'An unexpected error occurred while adding the game.');
+
+        }
+
         // --- Placeholder ---
         // This will be similar to BookController::storeFromSearch
         // 1. Validate incoming request data (hidden fields + user status/rating/comment)

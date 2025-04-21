@@ -74,7 +74,7 @@
 
                         {{-- Videogame Links Group --}}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown.toggle" href="#" id="navvarDropdownVideogames" role="button"
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownVideogames" role="button" data-bs-toggle="dropdown"
                                 aria-expanded="false">
                                 Videogames
                             </a>

@@ -7,14 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class Videogame extends Model
 {
+    use HasFactory;
     protected $fillable = [
-        'title',
+        'api_id',
+        'slug',
+        'name',
         'description',
-        'release_date',
-        'cover_image_url',
+        'released',
+        'background_image',
         'age_rating',
         'developer',
         'publisher'
+    ];
+
+    protected $casts = [
+        // Casts release_date to a Carbon date object
+        'released' => 'datetime',
     ];
 
     public function platforms()
@@ -22,7 +30,7 @@ class Videogame extends Model
         return $this->belongsToMany(Platform::class, 'game_platform');
     }
 
-    public function usersCollectionVideogame()
+    public function users()
     {
         return $this->belongsToMany(User::class, 'user_videogame')
             ->withPivot('status', 'playtime_hours', 'rating', 'comment')
