@@ -21,11 +21,14 @@ class VideogameController extends Controller
 
     public function index()
     {
-        // Placeholder: Fetch all videogames from the database
-        // $videogames = \App\Models\Videogame::all();
-        // return view('videogames.index', compact('videogames'));
+        // Fetch all videogames from database
+        $videogames = Videogame::latest()->paginate(15);
 
-        return view('videogames.index');
+        // --- DD #1 - Check the videogames data ---
+        // dd('Videogames Index - Fetched videogames: ', $videogames);
+        // --- END DD #1 ---
+
+        return view('videogames.index', compact('videogames'));
     }
 
     /**
@@ -204,7 +207,7 @@ class VideogameController extends Controller
             ];
 
             // Attach the videogame to the user's collection with pivot data
-            $user->videogames89->attach($videogame->id, $pivotData);
+            $user->videogames()->attach($videogame->id, $pivotData);
 
             // 5. Redirect with Success Message
             return redirect()->route('my-videogames')
@@ -258,8 +261,19 @@ class VideogameController extends Controller
             'age_rating' => 'nullable|string|max:50',
         ]);
 
+        // --- DD #1 - Check the data ---
+        // dd('Manual Store - Validation passed. Data: ', $validatedData);
+        // --- END DD #1 ---
+
         // 2. Create the videogame in the database
         try {
+
+            // --- DD #2 - Check if model instance is created ---
+            $newVideogame = Videogame::create($validatedData);
+            // dd('Manual Store - Videogame created: ', $newVideogame->toArray());
+            // --- END DD #2 ---
+
+
             // We use mass assignment, base on Videogame model's $fillable property
             $videogame = Videogame::create($validatedData);
 
@@ -268,6 +282,10 @@ class VideogameController extends Controller
                 ->with('success', $videogame->name . ' has been added to your collection.');
 
         } catch (\Exception $e) {
+            // --- DD #3 - Check for exceptions ---
+            // dd('Manual Store - Exception during create: ', $e->getMessage(), $e);
+            // --- END DD #3 ---
+            
             Log::error("Error storing mannually added videogame: " . $e->getMessage());
             return redirect()->back()
                 ->with('error'. 'Failed to add videogame. Please check the data and try again.')

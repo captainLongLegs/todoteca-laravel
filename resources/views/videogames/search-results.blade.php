@@ -65,7 +65,7 @@
                                 @auth
                                     <form action="{{ route('videogames.store-from-search') }}" method="POST" class="mt-2">
                                         @csrf
-                                        {{-- Hidden fields to pass game data needed for storign --}}
+                                        {{-- Hidden fields to pass game data needed for storing --}}
                                         {{-- We need enough info to uniquely identify and save the game --}}
                                         <input type="hidden" name="api_id" value="{{ $game['id'] }}"> {{-- RAWG ID --}}
                                         <input type="hidden" name="name" value="{{ $game['name'] ?? 'Unknown title' }}">

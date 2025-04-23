@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Book;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http; // Importing Laravel's HTTP Client facade
+use Illuminate\Support\Facades\Log; // Importing Log facade for error logging
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class BookController extends Controller
 {
@@ -92,27 +97,42 @@ class BookController extends Controller
             'comment' => 'nullable|string|max:1000',
         ]);
 
+        $user = Auth::user();
+
         // Find or create the book
-        $book = Book::firstOrCreate(
-            ['isbn' => $validated['isbn']],
-            [
-                'title' => $validated['title'],
-                'author' => $validated['author'],
-            ]
-        );
 
-        // Handling missing fields, checking for error in 'comment' being empty?
+        try {
 
-        $pivotData = [
-            'status' => $validated['status'],
-            'rating' => $validated['rating'] ?? null,
-            'comment' => $validated['comment'] ?? null,
-        ];
+            $book = Book::firstOrCreate(
+                ['isbn' => $validated['isbn']],
+                [
+                    'title' => $validated['title'],
+                    'author' => $validated['author'],
+                ]
+            );
 
-        // Attach the book to the authenticated user with additional data
-        auth()->user()->books()->attach($book->id, $pivotData);
+            // Handling missing fields, checking for error in 'comment' being empty?
 
-        return redirect()->route('my-books')->with('success', 'Book added to your collection.');
+            $pivotData = [
+                'status' => $validated['status'],
+                'rating' => $validated['rating'] ?? null,
+                'comment' => $validated['comment'] ?? null,
+            ];
+
+            // Attach the book to the authenticated user with additional data
+            $user->books()->attach($book->id, $pivotData);
+            return redirect()->route('my-books')->with('success', 'Book added to your collection.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle potential database errors
+            Log::error("Database error adding book: " . $e->getMessage(), ['isbn' => $validatedData['isbn'] ?? null]);
+            return redirect()->back()->with('error', 'Could not add the book due to a database issue. Please try again.');
+        } catch (\Exception $e) {
+            // Handle any other unexpected errors
+            Log::error("Error in storeFromSearch: " . $e->getMessage(), ['isbn' => $validatedData['isbn'] ?? null]);
+            report($e); // Optional: report the error to the logging system. FTM I leave it here
+            return redirect()->back()->with('error', 'An unexpected error occurred while adding the book.');
+
+        }
     }
 
 
