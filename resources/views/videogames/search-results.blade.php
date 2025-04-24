@@ -18,7 +18,10 @@
         @if (isset($videogames) && count($videogames) > 0)
             <div class="list-group"> {{-- Using list-group for simple layout --}}
                 @foreach ($videogames as $game)
-                    <div class="list-group-item list-group-item-action mb-3">
+                {{-- DD Checking the answer from the API --}}
+                {{-- dd($game) --}}
+                {{-- END DD --}}    
+                <div class="list-group-item list-group-item-action mb-3">
                         <div class="row g-3">
 
                             {{-- Game Cover Image --}}
@@ -65,7 +68,9 @@
                                 @auth
                                     <form action="{{ route('videogames.store-from-search') }}" method="POST" class="mt-2">
                                         @csrf
-                                        {{-- Hidden fields to pass game data needed for storing --}}
+                                        {{-- Hidden fields to pass game data needed for storing
+                                        
+                                        --}}
                                         {{-- We need enough info to uniquely identify and save the game --}}
                                         <input type="hidden" name="api_id" value="{{ $game['id'] }}"> {{-- RAWG ID --}}
                                         <input type="hidden" name="name" value="{{ $game['name'] ?? 'Unknown title' }}">

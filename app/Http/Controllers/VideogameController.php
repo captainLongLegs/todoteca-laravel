@@ -123,6 +123,10 @@ class VideogameController extends Controller
      */
     public function storeFromSearch(Request $request)
     {
+        // --- DD #1 - Check the request data ---
+        // dd('Store From Search - Request received: ', $request->all());
+        // --- END DD #1 ---
+
         // 1. Validate Incoming Request Data
         $validatedData = $request->validate([
             'api_id' => 'required|integer',
@@ -130,8 +134,6 @@ class VideogameController extends Controller
             'name' => 'required|string|max:255',
             'background_image' => 'nullable|url',
             'released' => 'nullable|date_format:Y-m-d',
-            'developer' => 'nullable|string|max:255',
-            'publisher' => 'nullable|string|max:255',
             'platforms_string' => 'nullable|string',
             'genres_string' => 'nullable|string',
 
@@ -140,6 +142,10 @@ class VideogameController extends Controller
             'rating' => 'nullable|integer|min:1|max:5',
             'comment' => 'nullable|string|max:5000',
         ]);
+
+        // --- DD #2 - Check the validated data ---
+        // dd('Store From Search - Validation passed. Data: ', $validatedData);
+        // --- END DD #2 ---
 
         $user = Auth::user();
 
@@ -153,10 +159,14 @@ class VideogameController extends Controller
                   'name' => $validatedData['name'],
                   'background_image' => $validatedData['background_image'],
                   'released' => $validatedData['released'],
-                  'developer' => $validatedData['developer'],
-                  'publisher' => $validatedData['publisher'],
+                  // REMOVED 'developers' => $validatedData['developers'],
+                  // REMOVED 'publishers' => $validatedData['publishers'],
                 ]
             );
+
+            // --- DD #3 - Check if videogame is found or created ---
+            //dd('Store From Search - Videogame found or created: ', $videogame->toArray(), 'Exists in DB', $videogame->exists, 'Was recently created', $videogame->wasRecentlyCreated);
+            // --- END DD #3 ---
 
             // 3. Handle Platforms and Genres
 
@@ -218,6 +228,10 @@ class VideogameController extends Controller
             Log::error("Database error adding videogame: " . $e->getMessage(), ['api_id' => $validatedData['api_id'] ?? null]);
             return redirect()->back()->with('error', 'Could not add the game due to a database issue. Please try again.');
         } catch (\Exception $e) {
+            // --- DD #exception ---
+            // dd('Store From Search - Exception during storeFromSearch: ', $e->getMessage(), $e);
+            // --- END DD #exception ---
+            
             // Handle any other unexpected errors
             Log::error("Error in storeFromSearch: " . $e->getMessage(), ['api_id' => $validatedData['api_id'] ?? null]);
             report($e); // Optional: report the error to the logging system. FTM I leave it here
@@ -237,8 +251,6 @@ class VideogameController extends Controller
         $user = Auth::user();
         $videogames = $user->videogames()->withPivot('status', 'rating', 'comment')->get();
         // 3. Return a view displaying the collection.
-
-         $videogames = []; // Placeholder
          return view('videogames.my-collection', compact('videogames')); // Need to create this view
     }
 
