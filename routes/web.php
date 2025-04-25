@@ -46,19 +46,23 @@ Route::prefix('videogames')->name('videogames.')->group(function () {
     Route::get('/search', [VideogameController::class, 'search'])->name('search'); // API Search Form
     Route::get('/search/results', [VideogameController::class, 'searchResults'])->name('search.results'); // API Search Results
     Route::get('/create', [VideogameController::class, 'create'])->name('create'); // Form to add manually a new videogame
-    
+
     Route::post('/', [VideogameController::class, 'store'])->name('store'); // Store a manually added videogame
-    
+
     Route::post('/store-from-search', [VideogameController::class, 'storeFromSearch']) // Store a videogame from API search results
         ->name('store-from-search')
         ->middleware('auth');
 });
-    
-// === User's Videogame Collection Routes ===
-Route::get('/my-videogames', [VideogameController::class, 'myCollection']) // List user's videogames
-    ->name('my-videogames')
-    ->middleware('auth');
 
+// === User's Videogame Collection Routes ===
+Route::middleware('auth')->group(function () { // Group routes that require authentication
+
+    Route::get('/my-videogames', [VideogameController::class, 'myCollection']) // List user's videogames
+        ->name('my-videogames');
+
+    Route::delete('/my-videogames/{videogame}', [VideogameController::class, 'removeFromCollection']) // Remove videogame from user's collection
+        ->name('my-videogames.destroy');
+});
 // Testing Route
 //Route::get('/books/search', function() {
 //    dd('Simplified route test');

@@ -306,4 +306,27 @@ class VideogameController extends Controller
 
     }
 
+    /**
+     * Remove a videogame from the user's collection.
+     * Route: my-videogames.destroy (DELETE /my-videogames/{videogame})
+     */
+    public function removeFromCollection(Videogame $videogame)
+    {
+        $user = Auth::user();
+
+        // We use the relationshop ('videogames') defined on the User model
+        // detach() removes the entry from the pivot talbe
+        $detached = $user->videogames()->detach($videogame->id);
+
+        if ($detached) {
+            // If derach returns > 0, it means a record was removed 
+            return redirect()->route('my-videogames')
+                ->with('success', $videogame->name . ' has been removed from your collection.');
+        }  else {
+            // If detach returns 0, it means the videogame was not in the user's collection
+            return redirect()->route('my-videogames')
+                ->with('info', $videogame->name . ' was not found in your collection.');
+        }
+    }
+
 }
