@@ -32,13 +32,24 @@ Route::prefix('books')->name('books.')->group(function () {
 });
 
 // === User's Book Collection Routes ===
-Route::get('/my-books', [UserBookController::class, 'index']) // List user's books
-    ->name('my-books')
-    ->middleware('auth');
+Route::middleware('auth')->group(function () { // Group routes that require authentication
 
-Route::post('/books/{book}/add-to-collection', [UserBookController::class, 'store'])
-    ->name('user-books.store')
-    ->middleware('auth');
+    Route::get('/my-books', [UserBookController::class, 'index']) // List user's books
+        ->name('my-books');
+
+    Route::get('/my-books/{book}/edit', [UserBookController::class, 'edit']) // Edit book in user's collection
+        ->name('my-books.edit');
+
+    Route::match(['put', 'patch'], '/my-books/{book}', [UserBookController::class, 'update']) // Update book in user's collection
+        ->name('my-books.update');
+    
+    Route::delete('/my-books/{book}', [UserBookController::class, 'destroy']) // Remove book from user's collection
+        ->name('my-books.destroy');
+});
+
+// Redundant?? MUST CHECK
+//Route::post('/books/{book}/add-to-collection', [UserBookController::class, 'store'])
+//    ->name('user-books.store')
 
 // === Videogames routes ===
 Route::prefix('videogames')->name('videogames.')->group(function () {

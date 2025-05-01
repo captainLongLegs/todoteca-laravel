@@ -22,7 +22,7 @@
                 <p>Book ID: {{  $book->id }}</p>
 
                 <!--Add to My Collection  -->
-                <form action="{{  route('user-books.store', $book) }}" method="POST">
+                <form action="{{  route('books.store', $book) }}" method="POST">
                     @csrf
                     <div class="form-group">
                         <label for=status >Status</label>

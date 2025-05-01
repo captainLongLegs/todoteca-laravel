@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule; 
 
 class UserBookController extends Controller
 {
@@ -95,26 +96,86 @@ class UserBookController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for editing the user's collection details for a specific book
+     * Route: my-books.edit (GET /my-books/{book}/edit)
+     * 
+     * @param Book $book Route model binding
+     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
      */
-    public function edit(string $id)
+    public function edit(Book $book) // Here we are using the standard edit name, not editCollectionBook like we should if using videogame style, but I'll refactor later.
     {
-        //
+        $user = Auth::user();
+
+        // Find specific pivot record for this book and user
+        $collectionItem = $user->books()
+            ->where('book_id', $book->id)
+            ->first();
+
+        // Check if the book is in the user's collection
+        if (!$collectionItem|| !$collectionItem->pivot) {
+            return redirect()->route('my-books')->with('error', 'Book not found in your collection');
+        }
+
+        // We pass the Book model ($book) and the pivot data ($collectiomItem->pivot) to the view
+        // We also make sure the view exists at resources/views/books/edit-collection-item.blade.php
+        return view('books.edit-collection-item', [
+            'book' => $book,
+            'pivotData' => $collectionItem->pivot,
+        ]);        
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the user's collection details for the specified book in storage.
+     * Route: my-books.update (PUT/PATCH /my-books/{book})
+     * 
+     * @param Request $request
+     * @param Book $book Route model binding
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Book $book)
     {
-        //
+        $user = Auth::user();
+
+        // 1. Vaildate the submitted form data
+        $validatedPivotData = $request->validate([
+            'status' => ['required', Rule::in(['to-read', 'reading', 'read'])],
+            'rating' => 'nullable|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        // 2. Update the pivot table record ('user_book')
+        $updated= $user->books()->updateExistingPivot($book->id, $validatedPivotData);
+
+        if ($updated) {
+            return redirect()->route('my-books')->with('success', 'Collection details for' . $book->title . ' updated successfully');
+        } else {
+            return redirect()->back()->with('error', 'Failed to update collection details for ' . $book->title . '. Reocrd might not exist or data was unchanged.');
+        }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified book from authenticated user's collection.
+     * Route: my-books.destroy (DELETE /my-books/{book})
+     * 
+     * @param Book $book Route model binding
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(string $id)
+    public function destroy(Book $book)
     {
-        //
+        $user = Auth::user();
+
+        // Use the 'books' relationship on the User model
+        // detach() removes the entru from the pivot table ('user_book')
+
+        $detached = $user->books()->detach($book->id);
+
+        if ($detached) {
+            return redirect()->route('my-books')
+            ->with('success', '"' . $book->title . '" removed from your collection');
+        } else {
+            return redirect()->route('my-books')
+            ->with('warning', '"' . $book->title . '" was not found in your collection.');
+        }
+    
     }
 }
