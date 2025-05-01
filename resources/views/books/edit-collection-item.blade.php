@@ -12,8 +12,12 @@
                 <img src="{{ $book->cover_image }}" alt="{{ $book->title }} Cover" class="img-fluid rounded shadow-sm"
                     style="max-height:200px;">
             </div>
+        @else
+        <div class="mb-3 bg-secondary rounded text-white d-flex align-items-center justify-content-center" style="height: 200px; width:150px;">
+            <span>No Cover Image</span>
+        </div>
         @endif
-
+        
         {{-- Form posts to the update route, using PATCH method --}}
         <form action="{{ route('my-books.update', $book->id) }}" method="POST">
             @csrf
@@ -24,7 +28,7 @@
                 <label for="status" class="form-label">Status: </label>
                 <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
                     {{-- Define possible statuses --}}
-                    @php $statuses = ['to-read', 'reading', 'read']; @endphp
+                    @php $statuses = ['to-read', 'reading', 'read', 'on-hold', 'abandoned']; @endphp
                     @foreach($statuses as $statusOption)
                         <option value="{{ $statusOption }}" {{ old('status', $pivotData->status) == $statusOption ? 'selected' : '' }}>
                             {{ Str::of($statusOption)->replace('-', ' ')->title() }}

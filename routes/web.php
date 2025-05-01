@@ -24,7 +24,7 @@ Route::prefix('books')->name('books.')->group(function () {
     // Route::get('/{book}/edit', [BookController::class, 'edit'])->name('edit'); // Edit book (future implementation)
     // Route::put('/{book}', [BookController::class, 'update'])->name('update'); // Update book data(future implementation)
     // Route::delete('/{book}', [BookController::class, 'destroy'])->name('destroy'); // Delete book from ? (future implementation)
-
+    Route::post('/store', [BookController::class, 'store'])->name('store');
     Route::post('/store-from-search', [BookController::class, 'storeFromSearch']) // Store a book from API search results
         ->name('store-from-search')
         ->middleware('auth');
@@ -36,6 +36,9 @@ Route::middleware('auth')->group(function () { // Group routes that require auth
 
     Route::get('/my-books', [UserBookController::class, 'index']) // List user's books
         ->name('my-books');
+    
+    Route::post('/books/{book}/add-to-collection', [UserBookController::class, 'addLocalBookToCollection']) // Add a book to user's collection
+        ->name('books.add-local-to-collection');
 
     Route::get('/my-books/{book}/edit', [UserBookController::class, 'edit']) // Edit book in user's collection
         ->name('my-books.edit');
@@ -45,11 +48,11 @@ Route::middleware('auth')->group(function () { // Group routes that require auth
     
     Route::delete('/my-books/{book}', [UserBookController::class, 'destroy']) // Remove book from user's collection
         ->name('my-books.destroy');
+    
+
 });
 
-// Redundant?? MUST CHECK
-//Route::post('/books/{book}/add-to-collection', [UserBookController::class, 'store'])
-//    ->name('user-books.store')
+
 
 // === Videogames routes ===
 Route::prefix('videogames')->name('videogames.')->group(function () {

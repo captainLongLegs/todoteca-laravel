@@ -68,17 +68,36 @@ class BookController extends Controller
     public function searchResults(Request $request)
     {
         $query = $request->input('query');
-        $client = new Client();
-        $response = $client->get('https://openlibrary.org/search.json', [
-            'query' => [
-                'q' => $query,
-                'fields' => 'title,author_name,isbn,first_publish_year',
-            ],
-        ]);
-        $data = json_decode($response->getBody(), true);
-        $books = $data['docs'] ?? [];
+        $client = new \GuzzleHttp\Client(['verify' => false]); // Disable SSL verification for Guzzle
+        $books = [];
+        $error = null;
 
-        return view('books.search-results', compact('books'));
+        try {
+
+            $response = $client->get('https://openlibrary.org/search.json', [
+                'query' => [
+                    'q' => $query,
+                    'fields' => 'key,title,author_name,isbn,first_publish_year,cover_i',
+                    'limit' => 20,
+                ],
+                'timeout' => 10,
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+            $books = $data['docs'] ?? [];
+
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+
+            Log::error("OpenLibrary API Error: " . $e->getMessage());
+            if ($e->hasResponse()) {
+                Log::error("OpenLibrary Response: " . $e->getResponse()->getBody());
+            }
+            $error = "Could not connect to the book search API. Please try again later.";
+        } catch (\Exception $e) {
+            Log::error("Book search error: " . $e->getMessage());
+            $error = "An unexpected error occurred during the book search. Please try again later.";
+        }
+        return view('books.search-results', compact('books', 'query', 'error'));
     }
 
     /**
@@ -92,7 +111,8 @@ class BookController extends Controller
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
             'isbn' => 'required|string|max:20',
-            'status' => 'required|in:to-read,reading,read',
+            'cover_image' => 'nullable|url|max:255',
+            'status' => ['required', Rule::in(['to-read', 'reading', 'read', 'on-hold', 'abandoned'])],
             'rating' => 'nullable|integer|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
         ]);
@@ -108,11 +128,25 @@ class BookController extends Controller
                 [
                     'title' => $validated['title'],
                     'author' => $validated['author'],
+                    'cover_image' => $validated['cover_image'] ?? null,
+                    'description' => $validated['description'] ?? null,
+                    'publisher' => $validated['publisher'] ?? null,
+                    'publication_year_this_publisher' => $validated['publication_year_this_publisher'] ?? null,
+                    'publication_year_original' => $validated['publication_year_original'] ?? null,
+                    'valoration' => $validated['valoration'] ?? null,
                 ]
             );
 
-            // Handling missing fields, checking for error in 'comment' being empty?
+            // --- DD for Cover_Image debugging
+            // dd('StoreFromSearch - Book found/created: ', $book->toArray());
+            // --- END DD
 
+            // Check if the book already exists in the user's collection
+            if ($user->books()->where('book_id', $book->id)->exists()) {
+                return redirect()->back()->with('warning', $book->title . ' is already in your collection.');
+            }
+
+            // Prepare the pivot data
             $pivotData = [
                 'status' => $validated['status'],
                 'rating' => $validated['rating'] ?? null,
@@ -122,11 +156,15 @@ class BookController extends Controller
             // Attach the book to the authenticated user with additional data
             $user->books()->attach($book->id, $pivotData);
             return redirect()->route('my-books')->with('success', 'Book added to your collection.');
+
         } catch (\Illuminate\Database\QueryException $e) {
+
             // Handle potential database errors
             Log::error("Database error adding book: " . $e->getMessage(), ['isbn' => $validatedData['isbn'] ?? null]);
             return redirect()->back()->with('error', 'Could not add the book due to a database issue. Please try again.');
+
         } catch (\Exception $e) {
+
             // Handle any other unexpected errors
             Log::error("Error in storeFromSearch: " . $e->getMessage(), ['isbn' => $validatedData['isbn'] ?? null]);
             report($e); // Optional: report the error to the logging system. FTM I leave it here

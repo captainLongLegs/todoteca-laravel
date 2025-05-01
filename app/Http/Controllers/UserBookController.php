@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule; 
+use Illuminate\Validation\Rule;
 
 class UserBookController extends Controller
 {
@@ -19,7 +19,7 @@ class UserBookController extends Controller
 
         // 2. Check if a user is actually logged in (though middleware should prevent this).
         if (!$user) {
-            return redirect()->route('login');            
+            return redirect()->route('login');
         }
 
         // 3. Fetch the books related to this user
@@ -40,17 +40,18 @@ class UserBookController extends Controller
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+
+    /* 
+    * DEPRECATED: This method is not used anymore, as we are using the addLocalBookToCollection method to add books to the collection.
     public function store(Request $request, Book $book)
     {
+        $user = Auth::user();
         // Validate the data
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
             'isbn' => 'required|string|max:20',
-            'status' => 'required|in:to-read,reading,read',
+            'status' => ['required', Rule::in(['to-read','reading','read', 'on-hold', 'abandoned'])],
             'rating' => 'nullable|integer|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
         ]);
@@ -86,14 +87,7 @@ class UserBookController extends Controller
         // Redirect to the book page
         // return redirect()->route('books.index')->with('success', 'Book added to your collection');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+ */
 
     /**
      * Show the form for editing the user's collection details for a specific book
@@ -112,7 +106,7 @@ class UserBookController extends Controller
             ->first();
 
         // Check if the book is in the user's collection
-        if (!$collectionItem|| !$collectionItem->pivot) {
+        if (!$collectionItem || !$collectionItem->pivot) {
             return redirect()->route('my-books')->with('error', 'Book not found in your collection');
         }
 
@@ -121,7 +115,7 @@ class UserBookController extends Controller
         return view('books.edit-collection-item', [
             'book' => $book,
             'pivotData' => $collectionItem->pivot,
-        ]);        
+        ]);
     }
 
     /**
@@ -138,13 +132,13 @@ class UserBookController extends Controller
 
         // 1. Vaildate the submitted form data
         $validatedPivotData = $request->validate([
-            'status' => ['required', Rule::in(['to-read', 'reading', 'read'])],
+            'status' => ['required', Rule::in(['to-read', 'reading', 'read', 'on-hold', 'abandoned'])],
             'rating' => 'nullable|integer|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
         ]);
 
         // 2. Update the pivot table record ('user_book')
-        $updated= $user->books()->updateExistingPivot($book->id, $validatedPivotData);
+        $updated = $user->books()->updateExistingPivot($book->id, $validatedPivotData);
 
         if ($updated) {
             return redirect()->route('my-books')->with('success', 'Collection details for' . $book->title . ' updated successfully');
@@ -171,11 +165,51 @@ class UserBookController extends Controller
 
         if ($detached) {
             return redirect()->route('my-books')
-            ->with('success', '"' . $book->title . '" removed from your collection');
+                ->with('success', '"' . $book->title . '" removed from your collection');
         } else {
             return redirect()->route('my-books')
-            ->with('warning', '"' . $book->title . '" was not found in your collection.');
+                ->with('warning', '"' . $book->title . '" was not found in your collection.');
         }
-    
+
+    }
+
+    /**
+     * Add an existin book (from local DB) to the authenticated user's collection.
+     * Triggered by form on the /books page.
+     * Route: books.add-local-to-collection (POST /books/{book}/add-to-collection)
+     * 
+     * @param Request $request
+     * @param Book $book Route model binding
+     * @return \Illuminate\Http\RedirectResponse
+     */
+
+    public function addLocalBookToCollection(Request $request, Book $book)
+    {
+        $user = Auth::user();
+
+        // Check if the book is already in the user's collection
+        if ($user->books()->where('book_id', $book->id)->exists()) {
+            return redirect()->back()->with('"' . $book->title . '" is already in your collection.');
+        }
+
+        // 2. Validate data from the form on the index page
+        $validatedPivotData = $request->validate([
+            'status' => ['required', Rule::in(['to-read', 'reading', 'read', 'on-hold', 'abandoned'])],
+            'rating' => 'nullable|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        // 3. Attach the book using validated pivot data
+        try {
+            $user->books()->attach($book->id, $validatedPivotData);
+            return redirect()->route('my-books')->with('success', '"' . $book->title . '" added to your collection');
+        } catch (\Exception $e) {
+            Log::error("Error adding local book to collection: " . $e->getMessage(), [
+                'user_id' => $user->id,
+                'book_id' => $book->id
+            ]);
+            return redirect()->route('books.index') // Redirect back to book list
+                ->with('error', 'Could not add "' . $book->title . '" to your collection due to an error.');
+        }
     }
 }

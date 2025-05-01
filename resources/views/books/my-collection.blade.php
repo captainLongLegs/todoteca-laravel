@@ -17,20 +17,19 @@
     @endif
 
     {{-- Check if the $books collection passed from the controller exists and has items --}}
-    {{-- Note: Controller should pass $books, not rely on auth()->user()->books directly in view --}}
     @if (isset($books) && $books->count() > 0)
          <div class="row">
             @foreach ($books as $book)
-                <div class="col-md-6 col-lg-4 mb-4"> {{-- Adjust columns for responsiveness --}}
-                    <div class="card h-100"> {{-- Use h-100 for equal height cards in a row --}}
+                <div class="col-md-6 col-lg-4 mb-4"> 
+                    <div class="card h-100"> 
                         {{-- Display Cover Image --}}
                         {{-- Check if cover_image exists in your books table --}}
+
                         {{-- Also check if Book model uses 'cover_image' or maybe 'background_image' like videogames? Adapt property name. --}}
                         @if ($book->cover_image)
                             {{-- Style image to prevent distortion --}}
                             <img src="{{ $book->cover_image }}" class="card-img-top" alt="{{ $book->title }} Cover" style="height: 250px; object-fit: cover;">
                         @else
-                            {{-- Placeholder if no image --}}
                              <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 250px;">
                                 <span>No Cover Image</span>
                             </div>
