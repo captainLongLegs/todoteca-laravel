@@ -60,6 +60,12 @@ Route::middleware('auth')->group(function () { // Group routes that require auth
     Route::get('/my-videogames', [VideogameController::class, 'myCollection']) // List user's videogames
         ->name('my-videogames');
 
+    Route::get('/my-videogames/{videogame}/edit', [VideogameController::class, 'editCollectionItem'])
+        ->name('my-videogames.edit'); // Edit videogame in user's collection
+
+    Route::match(['put', 'patch'], '/my-videogames/{videogame}', [VideogameController::class, 'updateCollectionItem']) // Update videogame in user's collection
+        ->name('my-videogames.update');
+    
     Route::delete('/my-videogames/{videogame}', [VideogameController::class, 'removeFromCollection']) // Remove videogame from user's collection
         ->name('my-videogames.destroy');
 });

@@ -307,6 +307,71 @@ class VideogameController extends Controller
     }
 
     /**
+     * Show the form for editing the user's collection details for a specific videogame.
+     * Route: my-videogames.edit (GET /my-videogames/{videogame}/edit)
+     * 
+     * @param Videogame $videogame Route model binding
+     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function editCollectionItem(Videogame $videogame)
+    {
+        $user = Auth::user();
+
+        // First, we find the specific pivot record for this user and videogame
+        $collectionItem = $user->videogames()
+            ->where('videogame_id', $videogame->id)
+            ->first();
+
+            // Then, we check if the game is actually in the user's collection
+        if (!$collectionItem || !$collectionItem->pivot) {
+            return redirect()
+                ->route('my-videogames')
+                ->with('error', 'Videogame not found in your collection.');
+        }
+
+            // We pass the Videogame model and the pivot data to the view
+            return view('videogames.edit-collection-item', [
+                'videogame' => $videogame,
+                'pivotData' => $collectionItem->pivot,
+            ]);
+    }
+
+    /**
+     * Update the user's collection details for a specific videogame.
+     * Route: my-videogames.update (PUT/PATCH /my-videogames/{videogame})
+     * 
+     * @param Request $request
+     * @param Videogame $videogame Route model binding
+     * @return \Illuminate\Http\RedirectResponse
+     */
+
+    public function updateCollectionItem(Request $request, Videogame $videogame)
+    {
+        $user = Auth::user();
+
+        // 1. We validate the incoming request data
+        $validatedPivotData = $request->validate([
+            'status' => ['required', Rule::in(['whislist', 'backlog', 'playing', 'completed', 'dropped'])],
+            'rating' => 'nullable|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:5000',
+            'playtime_hours' => 'nullable|integer|min:0|max:10000',
+        ]);
+
+        // 2. We update the pivot table record
+        $updated = $user->videogames()->updateExistingPivot($videogame->id, $validatedPivotData);
+
+        if($updated) {
+            return redirect()
+                ->route('my-videogames')
+                ->with('success', 'Collection details for ' . $videogame->name . ' updated successfully.');
+        } else {
+            return redirect()
+                ->route('my-videogames')
+                ->with('warning', 'No changes were made to the collection details for ' . $videogame->name . '. Record might not exist or data was unchanged.');
+        }
+    }        
+
+    /**
      * Remove a videogame from the user's collection.
      * Route: my-videogames.destroy (DELETE /my-videogames/{videogame})
      */

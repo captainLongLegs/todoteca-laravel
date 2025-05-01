@@ -16,7 +16,7 @@
         @if (isset($videogames) && $videogames->count() > 0)
             <div class="list-group">
                 @foreach ($videogames as $game)
-                    <div class="list-group-item">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
                         {{-- Access game attributes via $game->attribute --}}
                         {{-- Access pivot data via $game->pivot->attribute --}}
                         <h5>{{ $game->name }}</h5>
@@ -35,9 +35,10 @@
                         <small class="text-muted">Added:
                             {{ $game->pivot->created_at ? $game->pivot->created_at->format('Y-m-d') : 'N/A' }}</small>
                     </div>
-                    <div> {{-- Div for actions --}}
-                        {{-- Add Edit button/link here later --}}
-                        {{-- <a href="{{ route('videogames.edit', $game->id) }}" class="btn btn-secondary btn-sm">Edit</a> --}}
+                    <div class="btn-group"> {{-- We group buttons together --}}
+                        {{-- Edit button/link --}}
+                        <a href="{{ route('my-videogames.edit', $game->id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                        
                         {{-- Remove button form --}}
                         <form action="{{ route('my-videogames.destroy', $game->id) }}" method="POST" class="d-inline"
                             onsubmit="return confirm('Are you sure you want to remove {{ addslashes($game->name) }} from your collection?');">
