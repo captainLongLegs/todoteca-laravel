@@ -22,7 +22,7 @@ class VideogameController extends Controller
     public function index()
     {
         // Fetch all videogames from database
-        $videogames = Videogame::latest()->paginate(15);
+        $videogames = Videogame::latest()->paginate(12);
 
         // --- DD #1 - Check the videogames data ---
         // dd('Videogames Index - Fetched videogames: ', $videogames);
@@ -46,9 +46,9 @@ class VideogameController extends Controller
      * Route: videogames.search.results (GET /videogames/search/results)
      */
 
-     public function searchResults(Request $request)
-     {
-        $query = $request->input('query'); 
+    public function searchResults(Request $request)
+    {
+        $query = $request->input('query');
         $videogames = [];
         $error = null;
 
@@ -67,13 +67,13 @@ class VideogameController extends Controller
             if (empty($apiKey) || empty($baseUrl)) {
                 throw new \Exception('RAWG API key or base URL not configured in config/services .php or .env file.');
             }
-        
+
 
             $response = HTTP::timeout(10) // We set a timeout of 10 seconds
                 ->get("{$baseUrl}/games", [
-                'key' => $apiKey,
-                'search' => $query,
-                'page_size' => 15, // Limiting the results to 15. Arbitrary atm
+                    'key' => $apiKey,
+                    'search' => $query,
+                    'page_size' => 15, // Limiting the results to 15. Arbitrary atm
                 ]);
 
 
@@ -97,7 +97,7 @@ class VideogameController extends Controller
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             // Handle connection errors (timeout, DNS issues, etc.)
             $error = "could not connext to the Videogame API. Please try again later.";
-            Log::error("RAWG API Connection Error: " . $e -> getMessage(), ['query' => $query]);
+            Log::error("RAWG API Connection Error: " . $e->getMessage(), ['query' => $query]);
         } catch (\Exception $e) {
             // handle other errors (e.g., missing config, unexpected issues)
             $error = "An unexpected error occurred while searching for videogames.";
@@ -114,7 +114,7 @@ class VideogameController extends Controller
         // Return the results view, passing the games data, query and any error message
         return view('videogames.search-results', compact('videogames', 'query', 'error'));
     }
-      
+
 
     /**
      * Store a videogame found via API search into the local database
@@ -155,12 +155,13 @@ class VideogameController extends Controller
             $videogame = Videogame::firstOrCreate(
                 ['api_id' => $validatedData['api_id']], // Search key
                 // Data to use if created
-                [ 'slug' => $validatedData['slug'],
-                  'name' => $validatedData['name'],
-                  'background_image' => $validatedData['background_image'],
-                  'released' => $validatedData['released'],
-                  // REMOVED 'developers' => $validatedData['developers'],
-                  // REMOVED 'publishers' => $validatedData['publishers'],
+                [
+                    'slug' => $validatedData['slug'],
+                    'name' => $validatedData['name'],
+                    'background_image' => $validatedData['background_image'],
+                    'released' => $validatedData['released'],
+                    // REMOVED 'developers' => $validatedData['developers'],
+                    // REMOVED 'publishers' => $validatedData['publishers'],
                 ]
             );
 
@@ -172,7 +173,7 @@ class VideogameController extends Controller
 
             // Platforms
             if (!empty($validatedData['platforms_string'])) {
-                $platformNames = explode (',', $validatedData['platforms_string']);
+                $platformNames = explode(',', $validatedData['platforms_string']);
                 $platformIds = [];
                 foreach ($platformNames as $platformName) {
                     // Find or create the platform
@@ -188,7 +189,7 @@ class VideogameController extends Controller
 
             // Genres
             if (!empty($validatedData['genres_string'])) {
-                $genreNames = explode (',', $validatedData['genres_string']);
+                $genreNames = explode(',', $validatedData['genres_string']);
                 $genreIds = [];
                 foreach ($genreNames as $genreName) {
                     // Find or create the genre
@@ -231,7 +232,7 @@ class VideogameController extends Controller
             // --- DD #exception ---
             // dd('Store From Search - Exception during storeFromSearch: ', $e->getMessage(), $e);
             // --- END DD #exception ---
-            
+
             // Handle any other unexpected errors
             Log::error("Error in storeFromSearch: " . $e->getMessage(), ['api_id' => $validatedData['api_id'] ?? null]);
             report($e); // Optional: report the error to the logging system. FTM I leave it here
@@ -251,7 +252,7 @@ class VideogameController extends Controller
         $user = Auth::user();
         $videogames = $user->videogames()->withPivot('status', 'rating', 'comment')->get();
         // 3. Return a view displaying the collection.
-         return view('videogames.my-collection', compact('videogames')); // Need to create this view
+        return view('videogames.my-collection', compact('videogames')); // Need to create this view
     }
 
     public function create()
@@ -260,7 +261,7 @@ class VideogameController extends Controller
         return view('videogames.create');
     }
 
-    public function store(Request $request) 
+    public function store(Request $request)
     {
         // 1. Validate the data from the manual form
         $validatedData = $request->validate([
@@ -297,13 +298,57 @@ class VideogameController extends Controller
             // --- DD #3 - Check for exceptions ---
             // dd('Manual Store - Exception during create: ', $e->getMessage(), $e);
             // --- END DD #3 ---
-            
+
             Log::error("Error storing mannually added videogame: " . $e->getMessage());
             return redirect()->back()
-                ->with('error'. 'Failed to add videogame. Please check the data and try again.')
+                ->with('error' . 'Failed to add videogame. Please check the data and try again.')
                 ->withInput(); // Redirect back with input data
         }
 
+    }
+
+    /**
+     * Add an existing videogame (from local DB) to the authenticated user's collection.
+     * Triggered by form on the /vidoegames index page.
+     * Route: videogames.add-local-to-collection (POST /videogames/{videogame}/add-to-collection)
+     * 
+     * @param Request $request
+     * @param Videogame $videogame Route model binding
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function addLocalToCollection(Request $request, Videogame $videogame)
+    {
+        $user = Auth::user();
+
+        // 1. Check if the user already has this game in their collection
+        if ($user->videogames()->where('videogame_id', $videogame->id)->exists()) {
+            return redirect()->route('videogames.index')
+                ->with('warning', $videogame->name . ' is already in your collection.')
+                ->withFragment('game-' . $videogame->id); // Redirect to the videogame section
+        }
+
+        // 2. Validate data coming from the form
+        $validatedPivotData = $request->validate([
+            'status' => ['required', Rule::in(['whislist', 'backlog', 'playing', 'completed', 'dropped'])],
+            'rating' => 'nullable|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:5000',
+            'playtime_hours' => 'nullable|integer|min:0|max:10000',
+        ]);
+
+        // 3. Attach the videogame (which already exists locally) to the user's collection using the validated pivot data
+        try {
+            $user->videogames()->attach($videogame->id, $validatedPivotData);
+
+            return redirect()->route('my-videogames')
+                ->with('success', $videogame->name . ' has been added to your collection.');
+        } catch (\Exception $e) {
+            Log::error("Error adding local game to collection: " . $e->getMessage(), [
+                'videogame_id' => $videogame->id,
+                'user_id' => $user->id,
+            ]);
+            return redirect()->route('videogames.index')
+                ->with('error', 'Failed to add ' . $videogame->name . ' to your collection. Please try again.');
+        }
     }
 
     /**
@@ -322,18 +367,18 @@ class VideogameController extends Controller
             ->where('videogame_id', $videogame->id)
             ->first();
 
-            // Then, we check if the game is actually in the user's collection
+        // Then, we check if the game is actually in the user's collection
         if (!$collectionItem || !$collectionItem->pivot) {
             return redirect()
                 ->route('my-videogames')
                 ->with('error', 'Videogame not found in your collection.');
         }
 
-            // We pass the Videogame model and the pivot data to the view
-            return view('videogames.edit-collection-item', [
-                'videogame' => $videogame,
-                'pivotData' => $collectionItem->pivot,
-            ]);
+        // We pass the Videogame model and the pivot data to the view
+        return view('videogames.edit-collection-item', [
+            'videogame' => $videogame,
+            'pivotData' => $collectionItem->pivot,
+        ]);
     }
 
     /**
@@ -360,7 +405,7 @@ class VideogameController extends Controller
         // 2. We update the pivot table record
         $updated = $user->videogames()->updateExistingPivot($videogame->id, $validatedPivotData);
 
-        if($updated) {
+        if ($updated) {
             return redirect()
                 ->route('my-videogames')
                 ->with('success', 'Collection details for ' . $videogame->name . ' updated successfully.');
@@ -369,7 +414,7 @@ class VideogameController extends Controller
                 ->route('my-videogames')
                 ->with('warning', 'No changes were made to the collection details for ' . $videogame->name . '. Record might not exist or data was unchanged.');
         }
-    }        
+    }
 
     /**
      * Remove a videogame from the user's collection.
@@ -387,7 +432,7 @@ class VideogameController extends Controller
             // If derach returns > 0, it means a record was removed 
             return redirect()->route('my-videogames')
                 ->with('success', $videogame->name . ' has been removed from your collection.');
-        }  else {
+        } else {
             // If detach returns 0, it means the videogame was not in the user's collection
             return redirect()->route('my-videogames')
                 ->with('info', $videogame->name . ' was not found in your collection.');

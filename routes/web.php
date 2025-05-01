@@ -59,6 +59,9 @@ Route::prefix('videogames')->name('videogames.')->group(function () {
     Route::get('/create', [VideogameController::class, 'create'])->name('create'); // Form to add manually a new videogame
 
     Route::post('/', [VideogameController::class, 'store'])->name('store'); // Store a manually added videogame
+    Route::post('/{videogame}/add-to-collection', [VideogameController::class, 'addLocalToCollection']) // Add a local videogame to the user's collection
+        ->middleware('auth') 
+        ->name('add-local-to-collection'); 
 
     Route::post('/store-from-search', [VideogameController::class, 'storeFromSearch']) // Store a videogame from API search results
         ->name('store-from-search')
