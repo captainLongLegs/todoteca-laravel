@@ -8,18 +8,46 @@ use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http; // Importing Laravel's HTTP Client facade
 use Illuminate\Support\Facades\Log; // Importing Log facade for error logging
+use Illuminate\Support\Facades\Schema; // Importing Schema facade to validate column names dynamically
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class BookController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of local books.
+     * Handles sorting and filtering of books.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $books = Book::all(); // Fetch all books from the database
-        return view('books.index', compact('books')); // Pass the books to the view
+        // 1. We define allowed sortable columns to prevent arbitrary sorting.
+        $allowedSortColumns = ['title', 'author', 'created_at', 'updated_at']; // For now...
+
+        // 2. Sort parameters from the request, with defaults values.
+        $sortBy = $request->query('sort_by', 'created_at'); // Default column
+        $sortDir = $request->query('sort_dir', 'desc'); // Default direction
+
+        // 3. Validate the sort parameters.
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'created_at'; // Fallback to default column
+        }
+        if (!in_array(strtolower($sortDir), ['asc', 'desc'])) {
+            $sortDir = 'desc'; // Fallback to default direction
+        }
+
+        // Alternative validation (more dynamic but slightly more complex):
+        // $columns = Schema::getColumnListing('books'); // Get actual column names
+        // if (!in_array($sortBy, $columns)) { $sortBy = 'created_at'; }
+        // CAN TRY TO USE THIS FOR FUTURE VALIDATIONS
+
+        // 4. Build the query with sorting.
+        $booksQuery = Book::orderBy($sortBy, $sortDir);
+
+        // 5. Paginate the results.
+        $books = $booksQuery->paginate(10)->withQueryString();
+        
+        // 6. Pass the books and sort parameters to the view.
+        return view('books.index', compact('books', 'sortBy', 'sortDir'));
     }
 
     /**

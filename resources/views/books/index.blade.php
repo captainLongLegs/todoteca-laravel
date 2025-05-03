@@ -8,10 +8,42 @@
             <a href="{{ route('books.create') }}" class="btn btn-primary mb-3">Add New Book</a>
         </div>
 
+
+        {{-- Session Messages --}}
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
+        {{-- Sorting links --}}
+        <div class="d-flex justify-content-end gap-2 mb-3 small">
+            <span>Sort by:</span>
+            {{-- Helper function to generate sort links --}}
+            @php
+                // Function to generate sort link, preserving other query parameters
+                // Toggles direction if current column is selected
+                function sort_link($column, $label, $currentSortBy, $currentSortDirection)
+                {
+                    $newSortDirection = ($currentSortBy == $column && $currentSortDirection == 'asc') ? 'desc' : 'asc';
+                    // Generates URL keeping existing query parameters but overriding sort_by and sort_dir
+                    $url = request()->fullUrlWithQuery(['sort_by' => $column, 'sort_dir' => $newSortDirection]);
+                    $arrow = '';
+
+                    if ($currentSortBy == $column) {
+                        $arrow = $currentSortDirection == 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
+                    }
+
+                    // Adds 'fw-bold' if this column is currently active
+                    $activeClass = $currentSortBy == $column ? 'fw-bold' : '';
+
+                    return '<a href="' . e($url) . '" class="' . $activeClass . '">' . e($label) . ' ' . $arrow . '</a>';
+                }        
+            @endphp
+            {!! sort_link('title', 'Title', $sortBy, $sortDir) !!} |
+            {!! sort_link('author', 'Author', $sortBy, $sortDir) !!} |
+            {!! sort_link('created_at', 'Date Added', $sortBy, $sortDir) !!}
+        </div>
+
+        {{-- Check for empty results --}}
         @php
             $isEmptyCheck = ($books instanceof \Illuminate\Pagination\LengthAwarePaginator || $books instanceof \Illuminate\Support\Collection)
                 ? $books->isEmpty()
@@ -26,7 +58,8 @@
                     <div class="col-md-4-6 col-lg-4 mb-a">
                         <div class="card h-100">
                             @if ($book->cover_image)
-                                <img src="{{ $book->cover_image }} " class="card-img-top" alt="{{ $book->title }}">
+                                <img src="{{ $book->cover_image }} " class="card-img-top" alt="{{ $book->title }} Cover"
+                                    style="height: 250px; object-fit: cover;">
                             @else
                                 <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center"
                                     style="height: 200px;">
