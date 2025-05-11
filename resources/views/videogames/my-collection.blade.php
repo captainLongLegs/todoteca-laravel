@@ -61,6 +61,7 @@
                                 @csrf
                                 @method('DELETE') {{-- Method Spoofing --}}
                                 <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                            </form>
                         </div>
                     </div>
                 @endforeach
