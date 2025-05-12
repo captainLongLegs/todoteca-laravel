@@ -250,9 +250,16 @@ class VideogameController extends Controller
         // 1. Ensure user is authenticated (middleware should handle this).
         // 2. Fetch videogames associated with the user from the pivot table.
         $user = Auth::user();
-        $videogames = $user->videogames()->withPivot('status', 'rating', 'comment')->get();
+        $videogames = $user->videogames()
+            ->withPivot('status', 'rating', 'comment', 'playtime_hours')
+            ->orderByPivot('created_at', 'desc')
+            ->paginate(12);
+
+        $platforms = Platform::orderBy('name')->get();
+        $genres = Genre::orderBy('name')->get();
+
         // 3. Return a view displaying the collection.
-        return view('videogames.my-collection', compact('videogames')); // Need to create this view
+        return view('videogames.my-collection', compact('videogames', 'platforms', 'genres')); 
     }
 
     public function create()
