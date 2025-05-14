@@ -4,8 +4,8 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-3">
 
-            <h1>Books</h1>
-            <a href="{{ route('books.create') }}" class="btn btn-primary mb-3">Add New Book</a>
+            <h1>Local Books DB</h1>
+            <a href="{{ route('books.create') }}" class="btn btn-primary">Add New Book</a>
         </div>
 
 
@@ -14,35 +14,51 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
-        {{-- Sorting links --}}
-        <div class="d-flex justify-content-end gap-2 mb-3 small">
-            <span>Sort by:</span>
-            {{-- Helper function to generate sort links --}}
-            @php
-                // Function to generate sort link, preserving other query parameters
-                // Toggles direction if current column is selected
-                function sort_link($column, $label, $currentSortBy, $currentSortDirection)
-                {
-                    $newSortDirection = ($currentSortBy == $column && $currentSortDirection == 'asc') ? 'desc' : 'asc';
-                    // Generates URL keeping existing query parameters but overriding sort_by and sort_dir
-                    $url = request()->fullUrlWithQuery(['sort_by' => $column, 'sort_dir' => $newSortDirection]);
-                    $arrow = '';
+        {{-- Search Bar & Sorting links --}}
+        <div class="card mb-4">
+            <div class="card-header">Search & Sort Books by: </div>
+            <div class="card-body">
+                <form action="{{ route('books.index') }}" method="GET" class="mb-3">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Search by title, author, ISBN..."
+                            value="{{ request('search') }}">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                        @if(request('search'))
+                            <a href="{{ route('books.index', array_filter(request()->except('search', 'page'))) }}"
+                                class="btn btn-secondary">Clear Search</a>
+                        @endif
+                    </div>
+                </form>
 
-                    if ($currentSortBy == $column) {
-                        $arrow = $currentSortDirection == 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
-                    }
+                <div class="d-flex jusity-content-start flex-wrap gap-2 small">
+                    <span class="me-2 align-self-center">Sort by:</span>
 
-                    // Adds 'fw-bold' if this column is currently active
-                    $activeClass = $currentSortBy == $column ? 'fw-bold' : '';
+                    @php
+                        // Function to generate sort link
+                        function sort_link($column, $label, $currentSortBy, $currentSortDirection)
+                        {
+                            $searchParam = request()->has('search') ? ['search' => request('search')] : [];
 
-                    return '<a href="' . e($url) . '" class="' . $activeClass . '">' . e($label) . ' ' . $arrow . '</a>';
-                }        
-            @endphp
-            {!! sort_link('title', 'Title', $sortBy, $sortDir) !!} |
-            {!! sort_link('author', 'Author', $sortBy, $sortDir) !!} |
-            {!! sort_link('created_at', 'Date Added', $sortBy, $sortDir) !!}
+                            $newSortDirection = ($currentSortBy == $column && $currentSortDirection == 'asc') ? 'desc' : 'asc';
+
+                            $url = request()->fullurlWithQuery(array_merge($searchParam, ['sort_by' => $column, 'sort_dir' => $newSortDirection]));
+
+                            $arrow = '';
+
+                            if ($currentSortBy == $column) {
+                                $arrow = $currentSortDirection == 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
+                            }
+
+                            $activeClass = $currentSortBy == $column ? 'fw-bold' : '';
+                            return '<a href="' . e($url) . '" class="btn btn-outline-secondary btn-sm ' . $activeClass . '">' . e($label) . ' ' . $arrow . '</a>';
+                        }
+                    @endphp
+                    {!! sort_link('title', 'Title', $sortBy, $sortDir) !!} |
+                    {!! sort_link('author', 'Author', $sortBy, $sortDir) !!} |
+                    {!! sort_link('created_at', 'Date Added', $sortBy, $sortDir) !!}
+                </div>
+            </div>
         </div>
-
         {{-- Check for empty results --}}
         @php
             $isEmptyCheck = ($books instanceof \Illuminate\Pagination\LengthAwarePaginator || $books instanceof \Illuminate\Support\Collection)
