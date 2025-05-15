@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Models\Videogame;
 use App\Models\Platform;
 use App\Models\Genre;
-use Illuminate\Http\Request;
 use GuzzleHttp\Client; // Not using it now.
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -19,15 +19,47 @@ class VideogameController extends Controller
      * Display a listing of the videogames saved locally
      */
 
-    public function index()
+    public function index(Request $request)
     {
-        $videogames = Videogame::latest()->paginate(12);
+        $allowedSortColumns = ['name', 'developer', 'released', 'created_at', 'updated:at'];
+
+        $sortBy = $request->query('sort_by', 'created_at');
+        $sortDir = $request->query('sort_dir', 'desc');
+
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'created_at';
+        }
+
+        if (!in_array($sortDir, ['asc', 'desc'])) {
+            $sortDir = 'desc';
+        }
+
+        $videogamesQuery = Videogame::query()->with(['platforms', 'genres']);
+
+        $searchTerm = $request->query('search');
+
+        if ($searchTerm) {
+            $videogamesQuery->where(function ($query) use ($searchTerm) {
+                $query->where('name', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('developer', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('publisher', 'LIKE', "%{$searchTerm}%");
+                $query->orWhereHas('platforms', function ($q) use ($searchTerm) {
+                    $q->where('name', 'LIKE', "%{$searchTerm}%");
+                });
+                $query->orWhereHas('genres', function ($q) use ($searchTerm) {
+                    $q->where('name', 'LIKE', "%{$searchTerm}%");
+                });
+            });
+        }
+
+        $videogamesQuery->orderBy($sortBy, $sortDir);
+        $videogames = $videogamesQuery->paginate(12)->withQueryString();
 
         // --- DD #1 - Check the videogames data ---
         // dd('Videogames Index - Fetched videogames: ', $videogames);
         // --- END DD #1 ---
 
-        return view('videogames.index', compact('videogames'));
+        return view('videogames.index', compact('videogames', 'sortBy', 'sortDir'));
     }
 
     /**
