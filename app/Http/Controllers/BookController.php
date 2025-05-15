@@ -20,33 +20,43 @@ class BookController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. We define allowed sortable columns to prevent arbitrary sorting.
+        // Columns allowed for sorting.
         $allowedSortColumns = ['title', 'author', 'created_at', 'updated_at']; // For now...
 
-        // 2. Sort parameters from the request, with defaults values.
-        $sortBy = $request->query('sort_by', 'created_at'); // Default column
-        $sortDir = $request->query('sort_dir', 'desc'); // Default direction
+        $sortBy = $request->query('sort_by', default: 'created_at');
+        $sortDir = $request->query('sort_dir', 'desc');
 
-        // 3. Validate the sort parameters.
         if (!in_array($sortBy, $allowedSortColumns)) {
-            $sortBy = 'created_at'; // Fallback to default column
+            $sortBy = 'created_at';
         }
         if (!in_array(strtolower($sortDir), ['asc', 'desc'])) {
-            $sortDir = 'desc'; // Fallback to default direction
+            $sortDir = 'desc';
         }
 
         // Alternative validation (more dynamic but slightly more complex):
-        // $columns = Schema::getColumnListing('books'); // Get actual column names
+        // $columns = Schema::getColumnListing('books'); 
         // if (!in_array($sortBy, $columns)) { $sortBy = 'created_at'; }
         // CAN TRY TO USE THIS FOR FUTURE VALIDATIONS
 
-        // 4. Build the query with sorting.
-        $booksQuery = Book::orderBy($sortBy, $sortDir);
+        // Search query
+        $booksQuery = Book::query();
 
-        // 5. Paginate the results.
+        $searchTerm = $request->query('search');
+
+        if ($searchTerm) {
+            $booksQuery->where(function ($query) use ($searchTerm) {
+                $query->where('title', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('author', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('isbn', 'LIKE', "%{$searchTerm}%");
+
+            });
+
+        }
+
+        $booksQuery->orderBy($sortBy, $sortDir);
+
         $books = $booksQuery->paginate(10)->withQueryString();
-        
-        // 6. Pass the books and sort parameters to the view.
+
         return view('books.index', compact('books', 'sortBy', 'sortDir'));
     }
 
@@ -87,7 +97,6 @@ class BookController extends Controller
     /**
      *  Search for data using the API
      */
-
     public function search()
     {
         return view('books.search');
@@ -134,7 +143,6 @@ class BookController extends Controller
 
     public function storeFromSearch(Request $request)
     {
-        // Validate input
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
@@ -146,8 +154,6 @@ class BookController extends Controller
         ]);
 
         $user = Auth::user();
-
-        // Find or create the book
 
         try {
 
@@ -169,31 +175,26 @@ class BookController extends Controller
             // dd('StoreFromSearch - Book found/created: ', $book->toArray());
             // --- END DD
 
-            // Check if the book already exists in the user's collection
             if ($user->books()->where('book_id', $book->id)->exists()) {
                 return redirect()->back()->with('warning', $book->title . ' is already in your collection.');
             }
 
-            // Prepare the pivot data
             $pivotData = [
                 'status' => $validated['status'],
                 'rating' => $validated['rating'] ?? null,
                 'comment' => $validated['comment'] ?? null,
             ];
 
-            // Attach the book to the authenticated user with additional data
             $user->books()->attach($book->id, $pivotData);
             return redirect()->route('my-books')->with('success', 'Book added to your collection.');
 
         } catch (\Illuminate\Database\QueryException $e) {
 
-            // Handle potential database errors
             Log::error("Database error adding book: " . $e->getMessage(), ['isbn' => $validatedData['isbn'] ?? null]);
             return redirect()->back()->with('error', 'Could not add the book due to a database issue. Please try again.');
 
         } catch (\Exception $e) {
 
-            // Handle any other unexpected errors
             Log::error("Error in storeFromSearch: " . $e->getMessage(), ['isbn' => $validatedData['isbn'] ?? null]);
             report($e); // Optional: report the error to the logging system. FTM I leave it here
             return redirect()->back()->with('error', 'An unexpected error occurred while adding the book.');
