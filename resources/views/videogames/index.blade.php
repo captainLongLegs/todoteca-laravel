@@ -4,8 +4,8 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1>Videogames (Local DB)</h1>
-            {{-- Link to manual add page --}}
-            <a href="{{ route('videogames.create') }}" class="btn btn-primary">Add New Videogame</a>
+            <a href="{{ route('videogames.create') }}" class="btn btn-primary">Add Videogame Manually</a>
+            <a href="{{ route('videogames.search') }}" class="btn btn-primary">Search for videogames using the API</a>
         </div>
 
         {{-- Display Session Messages --}}

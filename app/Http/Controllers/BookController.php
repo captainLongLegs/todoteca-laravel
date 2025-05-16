@@ -6,9 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Book;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http; // Importing Laravel's HTTP Client facade
-use Illuminate\Support\Facades\Log; // Importing Log facade for error logging
-use Illuminate\Support\Facades\Schema; // Importing Schema facade to validate column names dynamically
+use Illuminate\Support\Facades\Http; 
+use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\Schema; 
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +20,6 @@ class BookController extends Controller
      */
     public function index(Request $request)
     {
-        // Columns allowed for sorting.
         $allowedSortColumns = ['title', 'author', 'created_at', 'updated_at']; // For now...
 
         $sortBy = $request->query('sort_by', default: 'created_at');
@@ -33,12 +32,11 @@ class BookController extends Controller
             $sortDir = 'desc';
         }
 
-        // Alternative validation (more dynamic but slightly more complex):
+        // Alternative validation
         // $columns = Schema::getColumnListing('books'); 
         // if (!in_array($sortBy, $columns)) { $sortBy = 'created_at'; }
-        // CAN TRY TO USE THIS FOR FUTURE VALIDATIONS
+        // CAN TRY TO USE THIS FOR FUTURE VALIDATIONS...
 
-        // Search query
         $booksQuery = Book::query();
 
         $searchTerm = $request->query('search');
@@ -51,6 +49,21 @@ class BookController extends Controller
 
             });
 
+        }
+
+        $authorFilter = $request->query('author_filter');
+        if ($authorFilter) {
+            $booksQuery->qhere('author', 'LIKE', "%{$authorFilter}%");
+        }
+
+        $genreFilter = $request->query('genre_filter');
+        if ($genreFilter) {
+            $booksQuery->where('genre', 'LIKE', "%{$genreFilter}%");
+        }
+
+        $publisherFilter = $request->query('publisher_filter');
+        if ($publisherFilter) {
+            $booksQuery->where('publisher', 'LIKE', "%{$publisherFilter}%");
         }
 
         $booksQuery->orderBy($sortBy, $sortDir);

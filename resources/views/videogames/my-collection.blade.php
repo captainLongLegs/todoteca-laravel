@@ -91,7 +91,7 @@
         @if (isset($videogames) && $videogames->count() > 0)
             <div class="row">
                 @foreach ($videogames as $game)
-                    <div class="col-md-6 col-lg4 mb-4" id="game-{{ $game->id }}">
+                    <div class="col-md-6 col-lg-4 mb-4" id="game-{{ $game->id }}">
                         <div class="card h-100">
                             {{-- Image Display --}}
                             @if ($game->background_image)
