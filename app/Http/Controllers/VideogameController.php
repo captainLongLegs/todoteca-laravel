@@ -18,7 +18,6 @@ class VideogameController extends Controller
     /**
      * Display a listing of the videogames saved locally
      */
-
     public function index(Request $request)
     {
         $allowedSortColumns = ['name', 'developer', 'released', 'created_at', 'updated:at'];
@@ -81,7 +80,6 @@ class VideogameController extends Controller
         $videogames = [];
         $error = null;
 
-        // We make sure we have a query to search for
         if (empty($query)) {
             return redirect()->route('videogames.search')->with('error', 'Please enter a search term.');
         }
@@ -104,8 +102,7 @@ class VideogameController extends Controller
 
             // _____-----_____-----_____-----_____ 
             // TROUBLESHOOTING -> There are no results when searching for any game
-            // dd($response->json()); // Uncomment this line to see the raw response
-            // Check for succesful response (code after dd() won't run yet)
+            // dd($response->json()); 
             // _____-----_____-----_____-----_____
 
             if ($response->successful()) {
@@ -118,11 +115,9 @@ class VideogameController extends Controller
             }
 
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            // Handle connection errors (timeout, DNS issues, etc.)
             $error = "could not connext to the Videogame API. Please try again later.";
             Log::error("RAWG API Connection Error: " . $e->getMessage(), ['query' => $query]);
         } catch (\Exception $e) {
-            // handle other errors (e.g., missing config, unexpected issues)
             $error = "An unexpected error occurred while searching for videogames.";
             Log::error("Videogames Search Error: " . $e->getMessage(), ['query' => $query]);
             report($e);
@@ -149,8 +144,7 @@ class VideogameController extends Controller
         // dd('Store From Search - Request received: ', $request->all());
         // --- END DD #1 ---
 
-        // 1. Validate Incoming Request Data
-        $validatedData = $request->validate([
+        $validatedInitialData = $request->validate([
             'api_id' => 'required|integer',
             'slug' => 'required|string|max:255',
             'name' => 'required|string|max:255',
@@ -170,18 +164,67 @@ class VideogameController extends Controller
         // --- END DD #2 ---
 
         $user = Auth::user();
+        $apiId = $validatedInitialData['api_id'];
 
-        // 2. Find or Create the Videogame
         try {
+            $existingCollectionEntry = $user->videogames()->whereHas('videogames', function ($q) use ($apiId) {
+                $q->where('api_id', $apiId);
+            })->exists();
+
+            if ($existingCollectionEntry) {
+                $gameName = $validatedInitialData['name'] ?? 'This game';
+                return redirect()->route('videogames.search.results', ['query' => $request->input('query', session('last_videogame_search_query'))])
+                    ->with('info', $gameName . ' is already in your collection.');
+            }
+
+            // Second API call for videogame details
+            $apiKey = config('services.rawg.key');
+            $baseUrl = config('services.rawg.base_url');
+            $gameDetailsResponse = null;
+            $developerName = null;
+            $publisherName = null;
+            $description = null;
+
+            if (empty($apiKey) || empty($baseUrl)) {
+                Log::error('RAWG API key or base URL not configured for detailed fetch.');
+            } else {
+                $gameDetailsResponse = Http::timeout(15)
+                    ->get("{$baseUrl}/games/{$apiId}", [
+                        'key' => $apiKey,
+                    ]);
+
+                if ($gameDetailsResponse->successful()) {
+                    $detailsData = $gameDetailsResponse->json();
+
+
+                    if (!empty($detailsData['developers']) && is_array($detailsData['developers']) && count($detailsData['developers']) > 0) {
+                        $developerName = $detailsData['developers'][0]['name'] ?? null;
+                    }
+
+                    if (!empty($detailsData['publishers']) && is_array($detailsData['publishers']) && count($detailsData['publishers']) > 0) {
+                        $publisherName = $detailsData['publishers'][0]['name'] ?? null;
+                    }
+
+                    $description = $detailsData['description_raw'] ?? $detailsData['description'] ?? null;
+
+                } else {
+                    Log::error("RAWG API Error fetching details for game ID {$apiId}: Status " . $gameDetailsResponse->status(), [
+                        'response_body' => $gameDetailsResponse->body()
+                    ]);
+                }
+            }
+
+
             $videogame = Videogame::firstOrCreate(
-                ['api_id' => $validatedData['api_id']],
+                ['api_id' => $apiId],
                 [
-                    'slug' => $validatedData['slug'],
-                    'name' => $validatedData['name'],
-                    'background_image' => $validatedData['background_image'],
-                    'released' => $validatedData['released'],
-                    // REMOVED 'developers' => $validatedData['developers'],
-                    // REMOVED 'publishers' => $validatedData['publishers'],
+                    'slug' => $validatedInitialData['slug'],
+                    'name' => $validatedInitialData['name'],
+                    'developer' => $developerName,
+                    'publisher' => $publisherName,
+                    'description' => $description,
+                    'background_image' => $validatedInitialData['background_image'] ?? null,
+                    'released' => $validatedInitialData['released'] ?? null,
                 ]
             );
 
@@ -189,11 +232,25 @@ class VideogameController extends Controller
             //dd('Store From Search - Videogame found or created: ', $videogame->toArray(), 'Exists in DB', $videogame->exists, 'Was recently created', $videogame->wasRecentlyCreated);
             // --- END DD #3 ---
 
-            // 3. Handle Platforms and Genres
+            if (!$videogame->wasRecentlyCreated) {
+                $updateData = [];
+                if ($developerName && $videogame->developer !== $developerName)
+                    $updateData['developer'] = $developerName;
+                if ($publisherName && $videogame->publisher !== $publisherName)
+                    $updateData['publisher'] = $publisherName;
+                if ($description && $videogame->description !== $description)
+                    $updateData['description'] = $description;
+                // Potentially update name, released, background_image too if they can change or be more accurate
+                // if ($detailsData['name'] && $videogame->name !== $detailsData['name']) $updateData['name'] = $detailsData['name'];
+
+                if (!empty($updateData)) {
+                    $videogame->update($updateData);
+                }
+            }
 
             // Platforms
-            if (!empty($validatedData['platforms_string'])) {
-                $platformNames = explode(',', $validatedData['platforms_string']);
+            if (!empty($validatedInitialData['platforms_string'])) {
+                $platformNames = explode(',', $validatedInitialData['platforms_string']);
                 $platformIds = [];
                 foreach ($platformNames as $platformName) {
 
@@ -208,8 +265,8 @@ class VideogameController extends Controller
             }
 
             // Genres
-            if (!empty($validatedData['genres_string'])) {
-                $genreNames = explode(',', $validatedData['genres_string']);
+            if (!empty($validatedInitialData['genres_string'])) {
+                $genreNames = explode(',', $validatedInitialData['genres_string']);
                 $genreIds = [];
                 foreach ($genreNames as $genreName) {
 
@@ -223,38 +280,32 @@ class VideogameController extends Controller
                 $videogame->genres()->sync($genreIds);
             }
 
-            // 4. Attach the videogame to the user's collection
-
             if ($user->videogames()->where('videogame_id', $videogame->id)->exists()) {
                 return redirect()->route('videogames.search.results', ['query' => $request->input('query')])
                     ->with('info', 'Videogame already in your collection.');
             }
 
             $pivotData = [
-                'status' => $validatedData['status'],
-                'rating' => $validatedData['rating'] ?? null,
-                'comment' => $validatedData['comment'] ?? null,
+                'status' => $validatedInitialData['status'],
+                'rating' => $validatedInitialData['rating'] ?? null,
+                'comment' => $validatedInitialData['comment'] ?? null,
+                'playtime_hours' => $validatedInitialData['playtime_hours'] ?? null,
             ];
 
-            // Attach the videogame to the user's collection with pivot data
             $user->videogames()->attach($videogame->id, $pivotData);
 
-            // 5. Redirect with Success Message
             return redirect()->route('my-videogames')
                 ->with('success', 'Videogame added to your collection successfully.');
 
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error("RAWG API Connection Exception (storeFromSearch - details fetch): " . $e->getMessage(), ['api_id' => $apiId]);
+            return redirect()->back()->with('error', 'Could not connect to the game details API. The game was added with limited information.');
         } catch (\Illuminate\Database\QueryException $e) {
-
-            Log::error("Database error adding videogame: " . $e->getMessage(), ['api_id' => $validatedData['api_id'] ?? null]);
+            Log::error("Database error adding videogame: " . $e->getMessage(), ['api_id' => $apiId]);
             return redirect()->back()->with('error', 'Could not add the game due to a database issue. Please try again.');
         } catch (\Exception $e) {
-            // --- DD #exception ---
-            // dd('Store From Search - Exception during storeFromSearch: ', $e->getMessage(), $e);
-            // --- END DD #exception ---
-
-            Log::error("Error in storeFromSearch: " . $e->getMessage(), ['api_id' => $validatedData['api_id'] ?? null]);
-            report($e);
-            return redirect()->back()->with('error', 'An unexpected error occurred while adding the game.');
+            Log::error("Error in storeFromSearch: " . $e->getMessage(), ['api_id' => $apiId, 'trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'An unexpected error occurred while adding the game: ' . $e->getMessage());
         }
     }
 
@@ -335,8 +386,9 @@ class VideogameController extends Controller
 
         try {
 
-            // --- DD #2 - Check if model instance is created ---
             $newVideogame = Videogame::create($validatedData);
+
+            // --- DD #2 - Check if model instance is created ---
             // dd('Manual Store - Videogame created: ', $newVideogame->toArray());
             // --- END DD #2 ---
 
