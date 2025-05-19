@@ -125,7 +125,7 @@ class VideogameController extends Controller
 
         // _____-----_____-----_____-----_____
         // Troubleshooting
-        // dd($videogames, $error); // Uncomment this line to see the results
+        // dd($videogames, $error);
         // Check the structure of $videogames and $error
         // _____-----_____-----_____-----_____
 
@@ -144,6 +144,25 @@ class VideogameController extends Controller
         // dd('Store From Search - Request received: ', $request->all());
         // --- END DD #1 ---
 
+        // TEMPORARY: To catch validation errors explicitly
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'api_id' => 'required|integer',
+            'slug' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'background_image' => 'nullable|url',
+            'released' => 'nullable|date_format:Y-m-d', // Standard Laravel date format validation
+            'platforms_string' => 'nullable|string',
+            'genres_string' => 'nullable|string',
+            'status' => ['required', Rule::in(['wishlist', 'backlog', 'playing', 'completed', 'dropped'])],
+            'rating' => 'nullable|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:5000',
+        ]);
+
+        if ($validator->fails()) {
+            // DD #VALIDATION_FAIL: THIS SHOULD NOW BE HIT IF VALIDATION FAILS
+            dd('DD#VALIDATION_FAIL - Validation Errors:', $validator->errors()->all(), 'Input Data:', $request->all());
+        }
+
         $validatedInitialData = $request->validate([
             'api_id' => 'required|integer',
             'slug' => 'required|string|max:255',
@@ -160,22 +179,44 @@ class VideogameController extends Controller
         ]);
 
         // --- DD #2 - Check the validated data ---
-        // dd('Store From Search - Validation passed. Data: ', $validatedData);
+        // dd('Store From Search - Validation passed. Data: ', $validatedInitialData);
         // --- END DD #2 ---
 
         $user = Auth::user();
         $apiId = $validatedInitialData['api_id'];
 
+        // DD #BEFORE_TRY: Make sure we even enter the try block
+        // dd('DD#BEFORE_TRY - Entering try block. API ID:', $apiId);
+
         try {
-            $existingCollectionEntry = $user->videogames()->whereHas('videogames', function ($q) use ($apiId) {
-                $q->where('api_id', $apiId);
-            })->exists();
+            // DD after the try block
+            // dd('DD#AFTER_TRY - Inside try block. API ID:', $apiId);
+
+            $localVideogame = Videogame::where('api_id', $apiId)->first();
+            $existingCollectionEntry = false;
+
+            if ($localVideogame) {
+                $existingCollectionEntry = $user->videogames()
+                    ->where('videogames.id', $localVideogame->id)
+                    ->exists();
+            }
+
+            // --- DD #AFTER_EXISTS_ASSIGNMENT ---
+            // dd('DD#AFTER_EXISTS_ASSIGNMENT - Value of $existingCollectionEntry:', $existingCollectionEntry, 'API ID:', $apiId, 'Local Videogame Found:', $localVideogame ? $localVideogame->toArray() : null);
+            // --- END DD ---
 
             if ($existingCollectionEntry) {
+                // dd('DD#INSIDE_IF_EXISTING - Condition was TRUE.');
                 $gameName = $validatedInitialData['name'] ?? 'This game';
                 return redirect()->route('videogames.search.results', ['query' => $request->input('query', session('last_videogame_search_query'))])
                     ->with('info', $gameName . ' is already in your collection.');
             }
+
+            // --- DD #AFTER_IF_EXISTING_BLOCK ---
+            // dd('DD#AFTER_IF_EXISTING_BLOCK - Passed the "already in collection" IF block. Preparing for API call. API ID:', $apiId);
+            // --- END DD ---
+
+
 
             // Second API call for videogame details
             $apiKey = config('services.rawg.key');
@@ -188,10 +229,16 @@ class VideogameController extends Controller
             if (empty($apiKey) || empty($baseUrl)) {
                 Log::error('RAWG API key or base URL not configured for detailed fetch.');
             } else {
+
+                
                 $gameDetailsResponse = Http::timeout(15)
-                    ->get("{$baseUrl}/games/{$apiId}", [
-                        'key' => $apiKey,
-                    ]);
+                ->get("{$baseUrl}/games/{$apiId}", [
+                    'key' => $apiKey,
+                ]);
+
+                // --- DD #3 - detailed API call - inspect response ---
+                // dd('DD#3 - Detailed API Response Status:', $gameDetailsResponse->status(), 'Body:', $gameDetailsResponse->json());
+                // --- END DD #3 ---
 
                 if ($gameDetailsResponse->successful()) {
                     $detailsData = $gameDetailsResponse->json();
@@ -258,6 +305,7 @@ class VideogameController extends Controller
                         ['name' => trim($platformName)],
                         ['slug' => Str::slug(trim($platformName))]
                     );
+
                     $platformIds[] = $platform->id;
                 }
                 // We sync the platforms for this game

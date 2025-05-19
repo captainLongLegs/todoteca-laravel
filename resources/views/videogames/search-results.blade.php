@@ -3,16 +3,22 @@
 @section('content')
     <div class="container">
         <h1>Videogame Search Results</h1>
+        {{-- Display any error messages passed from the controller --}}
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         {{-- Display the search query if available --}}
         @if(isset($query) && $query)
             <p class="lead">Showing results for: <strong>"{{ $query}}"</strong></p>
         @endif
 
-        {{-- Display any error messages passed from the controller --}}
-        @isset($error)
-            <div class="alert alert-danger">{{ $error }}</div>
-        @endisset
 
         {{-- Check if the $videogames variable exists and is not empty --}}
         @if (isset($videogames) && count($videogames) > 0)
@@ -68,20 +74,17 @@
                                 @auth
                                     <form action="{{ route('videogames.store-from-search') }}" method="POST" class="mt-2">
                                         @csrf
-                                        {{-- Hidden fields to pass game data needed for storing
-                                        
-                                        --}}
-                                        {{-- We need enough info to uniquely identify and save the game --}}
+                                        {{-- Hidden fields to pass game data needed for storing--}}
                                         <input type="hidden" name="api_id" value="{{ $game['id'] }}"> {{-- RAWG ID --}}
                                         <input type="hidden" name="name" value="{{ $game['name'] ?? 'Unknown title' }}">
                                         <input type="hidden" name="slug" value="{{ $game['slug'] ?? '' }}">
                                         <input type="hidden" name="background_image" value="{{ $game['background_image'] ?? '' }}">
                                         <input type="hidden" name="released" value="{{ $game['released'] ?? '' }}">
-                                        {{-- Pass platform names as a comma-separated string --}}
+
                                         <input type="hidden" name="platforms_string"
                                             value="{{ !empty($game['platforms']) ? implode(', ', array_column(array_column($game['platforms'], 'platform'), 'name')) : '' }}">
-                                        {{-- Pass genre names as a comma-separated string --}}
-                                        <input type="hidden" name="genres_string"
+
+                                            <input type="hidden" name="genres_string"
                                             value="{{ !empty($game['genres']) ? implode(', ', array_column($game['genres'], 'name')) : '' }}">
 
                                         {{-- User-specific collection data --}}
