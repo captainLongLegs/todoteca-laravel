@@ -1,66 +1,129 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Todoteca
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![GitHub license](https://img.shields.io/github/license/captainLongLegs/todoteca-laravel)](https://github.com/captainLongLegs/todoteca-laravel/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/captainLongLegs/todoteca-laravel?style=social)](https://github.com/captainLongLegs/todoteca-laravel/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/captainLongLegs/todoteca-laravel?style=social)](https://github.com/captainLongLegs/todoteca-laravel/network/members)
 
-## About Laravel
+## Project Description
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Todoteca is a web application developed using the Laravel framework (PHP). Its primary purpose is to allow users to **catalog and manage their personal collections of books and videogames**.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Users can:
+- Search for books and videogames using external APIs (Open Library and RAWG.io).
+- Add found items (from API searches or manually) to their personal collection.
+- View, filter, and sort items in their personal collection.
+- View, search, and sort items in the global local database lists.
+- Edit personal collection details for each item (status, rating, comment, playtime).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The project focuses on demonstrating core web application development skills including user authentication, database management (Eloquent ORM), API integration, routing, and building a responsive user interface.
 
-## Learning Laravel
+## Features (MVP)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+This version of Todoteca includes the following core functionalities:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+-   **User Authentication:** Secure registration, login, and logout using Laravel Breeze.
+-   **Book Management:**
+    -   API Search (Open Library) and display of results.
+    -   Add books from API search results to the local database and user collection.
+    -   Manual addition of books to the local database.
+    -   View, **search, and sort** the list of all books in the local database.
+-   **Videogame Management:**
+    -   API Search (RAWG.io) and display of results.
+    -   Add videogames from API search results to the local database and user collection (includes fetching detailed info like developer).
+    -   Manual addition of videogames to the local database.
+    -   View, **search, and sort** the list of all videogames in the local database.
+-   **Personal Collection:**
+    -   View personal collections for both books (`/my-books`) and videogames (`/my-videogames`).
+    -   **Filter** the videogame collection by Status, Rating, Platform, and Genre.
+    -   Edit collection-specific details for items (Status, Rating, Comment, Playtime).
+    -   Remove items from the personal collection.
+-   **Basic Responsive Design:** The interface adapts to different screen sizes using Bootstrap 5.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Technology Stack
 
-## Laravel Sponsors
+-   **Backend:** Laravel 10.x (PHP 8.1+)
+-   **Database:** MySQL 8.0+
+-   **Frontend:** Blade Templates, HTML5, CSS3, Bootstrap 5, (Minimal JavaScript)
+-   **API Clients:** Laravel HTTP Client (based on Guzzle)
+-   **External APIs:** Open Library API (Books), RAWG.io API (Videogames)
+-   **Authentication:** Laravel Breeze
+-   **Version Control:** Git
+-   **Repository:** GitHub
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Installation and Setup
 
-### Premium Partners
+Follow these steps to get the Todoteca project running on your local machine.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/captainLongLegs/todoteca-laravel todoteca
+    cd todoteca
+    ```
+    
+2.  **Install PHP Dependencies:**
+    Make sure you have Composer installed.
+    ```bash
+    composer install
+    ```
 
-## Contributing
+3.  **Install Frontend Dependencies and Build Assets (Optional but Recommended):**
+    Make sure you have Node.js and npm (or yarn) installed.
+    ```bash
+    npm install
+    npm run dev
+    ```
+    *(Use `npm run build` for production assets)*
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+4.  **Set up Environment File:**
+    Copy the example environment file and create your working `.env` file.
+    ```bash
+    cp .env.example .env
+    ```
+    Open the `.env` file and configure your database credentials and other settings.
 
-## Code of Conduct
+5.  **Generate Application Key:**
+    ```bash
+    php artisan key:generate
+    ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+6.  **Database Setup:**
+    Make sure your MySQL server is running and you have created a database (e.g., `todoteca`). Update your `.env` file with the database connection details.
+    Run the migrations to create the necessary tables:
+    ```bash
+    php artisan migrate
+    ```
+    *(Optional: If seeders are provided for initial data, run `php artisan db:seed`)*
 
-## Security Vulnerabilities
+7.  **API Configuration (CRUCIAL for API Search Features):**
+    The application relies on external APIs for searching books and videogames. You need to obtain API keys and configure them in your `.env` file.
+    *   **Open Library API:** No API key is typically required for the basic search endpoint used.
+    *   **RAWG.io API:** Obtain a free API key from [https://rawg.io/apidocs](https://rawg.io/apidocs). Add this key to your `.env` file:
+        ```dotenv
+        RAWG_API_KEY=YOUR_ACTUAL_RAWG_API_KEY
+        VIDEOGAME_API_BASE_URL=https://api.rawg.io/api # Ensure this is correct
+        ```
+    *   **Note:** Without the correct RAWG.io API key configured, the videogame API search and the ability to add games from search results will not function. Network/ISP blocks (like those potentially in Spain related to football piracy) can also prevent API access even with a valid key.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+8.  **Run the Application:**
+    Start the Laravel development server:
+    ```bash
+    php artisan serve
+    ```
+    The application should be accessible at `http://127.0.0.1:8000` (or the URL displayed in your console).
+
+## Full Project Documentation
+
+A comprehensive documentation file detailing the project's initial study, design, execution (including technical implementation, database schema, security measures, and code structure), testing plan, test results, and evaluation is available in the repository:
+
+-   **[PI_XavierMoralesReche.docx](PI_XavierMoralesReche.docx)**
+
+This document provides in-depth information complementing the code in this repository.
+
+## Author
+
+Xavier Morales Reche
+https://www.linkedin.com/in/xavier-morales-reche-719266115/
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT). Your project code built on top of Laravel would typically also have a license; consider adding a `LICENSE` file (MIT is common for open source).
